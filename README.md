@@ -1,6 +1,6 @@
 # llmao
 
-I keep typing plain English in my shell prompt instead of inside a coding agent.
+I keep typing plain English in my shell prompt all the time
 
 ```text
 $ explain what this project is about
