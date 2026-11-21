@@ -1,13 +1,13 @@
 # llmao
 
-I make this mistake all the time:
+I keep typing plain English in my shell prompt instead of inside a coding agent.
 
 ```text
 $ explain what this project is about
 zsh: command not found: explain
 ```
 
-With llmao, natural language text automatically opens your coding agent of choice.
+With **llmao**, natural language text automatically opens my coding agent of choice.
 
 ![Terminal demo showing llmao open Codex after the user types “explain this project”](llmao.gif)
 
@@ -35,8 +35,8 @@ Open a new shell after installation.
 
 - **The shell goes first.** llmao kicks in only when your interactive shell can’t find a command. Commands like `git status` run as usual.
 - **Likely typos stay in the shell.** Type `gti status` and llmao suggests `git` if it’s the only match. If several commands match, you get the usual shell error.
-- **The check runs locally.** A standalone line like `explain this project` can open your agent in the foreground, in your current directory. Pipes, redirects, and shell expansions stay with the shell.
-- **Agent selection is optional.** llmao uses Claude Code or Codex automatically when only one is installed. If both are installed, choose one or enable history-based selection. See [Configure](#configure).
+- **Everything runs locally.** A line like `explain this project` can open your agent in the same terminal, using your current folder. Your shell still handles lines that use syntax like `|`, `>`, or `*.py`.
+- **Coding agent selection.** If only one of Claude Code or Codex is installed, llmao uses it automatically. If both are installed, enable launch history to automatically pick the agent you used most often in your last 10 launches. See [Configure](#configure).
 
 ## Configure
 
