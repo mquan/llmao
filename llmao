@@ -1,11 +1,13 @@
 #!/bin/sh
 set -eu
 
+agent_names='claude codex opencode devin copilot agy cursor-agent gemini kiro-cli qwen goose pi cline amp auggie'
+
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Usage: llmao config [setting value]
 
-  agent           auto | claude | codex
+  agent           auto or one of: $agent_names
   launch-history  on | off
   auto-launch     on | off
   suggest-typos   on | off
@@ -56,8 +58,15 @@ esac
 
 case "$1:$2" in
   agent:auto) setting_value='' ;;
-  agent:claude|agent:codex) setting_value=$2 ;;
-  agent:*) usage >&2; exit 2 ;;
+  agent:*)
+    case $2 in
+      ''|*[!a-z-]*) usage >&2; exit 2 ;;
+    esac
+    case " $agent_names " in
+      *" $2 "*) setting_value=$2 ;;
+      *) usage >&2; exit 2 ;;
+    esac
+    ;;
   *:on) setting_value=1 ;;
   *:off) setting_value=0 ;;
   *) usage >&2; exit 2 ;;

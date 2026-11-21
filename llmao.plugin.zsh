@@ -62,9 +62,10 @@ function _llmao_agent_args {
     return 0
   fi
 
-  local agent
+  local -a agents=( claude codex opencode devin copilot agy cursor-agent gemini kiro-cli qwen goose pi cline amp auggie )
+  local agent executable cursor_executable
   local -a installed
-  for agent in claude codex; do
+  for agent in "${agents[@]}"; do
     if builtin whence -p -- "$agent" >/dev/null; then
       installed+=( "$agent" )
     fi
@@ -76,33 +77,73 @@ function _llmao_agent_args {
 
   # The caller provides newest entries first. Filter before taking ten so
   # unrelated commands and subcommands such as `codex review` don't vote.
-  local pattern='[[:blank:]]#(codex(|[[:blank:]]##--yolo)|claude(|[[:blank:]]##--dangerously-skip-permissions))[[:blank:]]#'
+  local -a launch_patterns=( "${agents[@]}"
+    'codex[[:blank:]]##--yolo' 'claude[[:blank:]]##--dangerously-skip-permissions'
+    'cursor-agent[[:blank:]]##agent' 'kiro-cli[[:blank:]]##chat' 'goose[[:blank:]]##session' )
+  if cursor_executable=$(builtin whence -p -- cursor-agent) && executable=$(builtin whence -p -- agent) &&
+     [[ $cursor_executable -ef $executable ]]; then
+    launch_patterns+=( agent 'agent[[:blank:]]##agent' )
+  fi
+  local pattern="[[:blank:]]#(${(j:|:)launch_patterns})[[:blank:]]#"
   local -a launches=( "${(@M)argv:#${~pattern}}" )
-  local -a words
-  local -A votes=( claude 0 codex 0 ) flags
-  local line latest_agent winner
+  local -a words recent_agents
+  local -A votes flags
+  local line winner
+  local -i winning_votes=0
   for line in "${(@)launches[1,10]}"; do
     words=( "${(@z)line}" )
     agent=${words[1]}
+    [[ $agent != agent ]] || agent=cursor-agent
     (( ${installed[(Ie)$agent]} )) || continue
-    latest_agent=${latest_agent:-$agent}
     if (( votes[$agent] == 0 )); then
-      flags[$agent]=${words[2]-}
+      case $agent in
+        claude|codex) flags[$agent]=${words[2]-} ;;
+      esac
+      recent_agents+=( "$agent" )
     fi
     (( ++votes[$agent] ))
   done
-  if (( votes[codex] > votes[claude] )); then
-    winner=codex
-  elif (( votes[claude] > votes[codex] )); then
-    winner=claude
-  else
-    winner=$latest_agent
-  fi
+  for agent in "${recent_agents[@]}"; do
+    if (( votes[$agent] > winning_votes )); then
+      winner=$agent
+      winning_votes=${votes[$agent]}
+    fi
+  done
   [[ -n $winner ]] || return 0
   reply=( "$winner" )
   if [[ -n ${flags[$winner]} ]]; then
     reply+=( "${flags[$winner]}" )
   fi
+}
+
+# Return the display label and the exact arguments for an interactive launch.
+function _llmao_agent_command {
+  emulate -L zsh
+  local agent=$1 flag=$2 prompt=$3 label
+  local -a args
+  case $agent in
+    claude) label='Claude Code'; args=( -- "$prompt" ) ;;
+    codex) label=Codex; args=( -- "$prompt" ) ;;
+    opencode) label=OpenCode; args=( "--prompt=$prompt" ) ;;
+    devin) label='Devin CLI'; args=( -- "$prompt" ) ;;
+    copilot) label='GitHub Copilot CLI'; args=( "--interactive=$prompt" ) ;;
+    agy) label='Antigravity CLI'; args=( "--prompt-interactive=$prompt" ) ;;
+    cursor-agent) label='Cursor CLI'; args=( agent -- "$prompt" ) ;;
+    gemini) label='Gemini CLI'; args=( "--prompt-interactive=$prompt" ) ;;
+    kiro-cli) label='Kiro CLI'; args=( chat -- "$prompt" ) ;;
+    qwen) label='Qwen Code'; args=( "--prompt-interactive=$prompt" ) ;;
+    goose) label=Goose; args=( run --interactive "--text=$prompt" ) ;;
+    pi) label=Pi; args=( -- "$prompt" ) ;;
+    cline) label='Cline CLI'; args=( -i -- "$prompt" ) ;;
+    amp) label=Amp; args=( "$prompt" ) ;;
+    auggie) label='Auggie CLI'; args=( -- "$prompt" ) ;;
+    *) return 1 ;;
+  esac
+  if [[ -n $flag ]]; then
+    label+=" ($flag)"
+    args=( "$flag" "${args[@]}" )
+  fi
+  reply=( "$label" "${args[@]}" )
 }
 
 function _llmao_prompt_matches {
@@ -156,14 +197,15 @@ function _llmao_handle {
         else
           _llmao_agent_args
         fi
-        local label executable flag=${reply[2]-}
-        case ${reply[1]} in
-          claude) label='Claude Code' ;;
-          codex) label='Codex' ;;
-        esac
-        if [[ -n $label ]] && executable=$(builtin whence -p -- "${reply[1]}"); then
-          builtin print -ru2 -- "✦ Starting $label${flag:+ ($flag)}..."
-          builtin exec -- "$executable" "${(@)reply[2,-1]}" -- "${(j: :)@}"
+        local executable agent=${reply[1]-}
+        if _llmao_agent_command "$agent" "${reply[2]-}" "${(j: :)@}" &&
+           executable=$(builtin whence -p -- "$agent"); then
+          builtin print -ru2 -- "✦ Starting ${reply[1]}..."
+          if [[ $agent == amp ]]; then
+            builtin exec -- "$executable" < <(builtin print -r -- "${reply[2]}")
+          else
+            builtin exec -- "$executable" "${(@)reply[2,-1]}"
+          fi
         fi
       fi
       ;;

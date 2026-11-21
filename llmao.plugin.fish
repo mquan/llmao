@@ -42,13 +42,12 @@ function fish_command_not_found
         end
     end
 
-    set -l decision (begin
+    set -l fields (begin
         if test "$use_history" = 1
             builtin history search --null
         end
     end | /bin/zsh -df "$_llmao_fish_dir/llmao-bridge.zsh" fish "$raw" \
         "$LLMAO_AGENT" "$use_history" (count $argv) $argv (builtin --names) (functions --names))
-    set -l fields (string split ' ' -- "$decision")
     switch "$fields[1]"
         case typo
             if test "$LLMAO_SUGGEST_TYPOS" != 0
@@ -58,18 +57,12 @@ function fish_command_not_found
         case prompt
             set -l executable (command -s -- "$fields[2]")
             if set -q executable[1]
-                set -l label
-                switch "$fields[2]"
-                    case claude
-                        set label 'Claude Code'
-                    case codex
-                        set label Codex
+                printf '✦ Starting %s...\n' "$fields[3]" >&2
+                if test "$fields[2]" = amp
+                    printf '%s\n' "$fields[4]" | command "$executable"
+                else
+                    command "$executable" $fields[4..-1]
                 end
-                if set -q fields[3]
-                    set label "$label ($fields[3])"
-                end
-                printf '✦ Starting %s...\n' "$label" >&2
-                command "$executable" $fields[3] -- (string join ' ' -- $argv)
                 return $status
             end
     end

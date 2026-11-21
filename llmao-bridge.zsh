@@ -12,7 +12,7 @@ _llmao_classify "${words[1]}" "$@" "${(@k)commands}"
 
 case ${reply[1]} in
   TYPO)
-    [[ -z ${reply[2]-} ]] || print -r -- "typo ${reply[2]}"
+    [[ -z ${reply[2]-} ]] || print -rl -- typo "${reply[2]}"
     ;;
   AGENT_PROMPT)
     _llmao_prompt_matches "$raw" "${words[@]}" || exit 0
@@ -40,8 +40,10 @@ case ${reply[1]} in
       fi
     fi
     _llmao_agent_args "${launches[@]}"
-    case ${reply[1]} in
-      claude|codex) print -r -- prompt "${reply[@]}" ;;
-    esac
+    local agent=${reply[1]-}
+    # The prompt matcher rejects line breaks, so each argument fits on one line.
+    if _llmao_agent_command "$agent" "${reply[2]-}" "${(j: :)words}"; then
+      print -rl -- prompt "$agent" "${reply[@]}"
+    fi
     ;;
 esac

@@ -37,7 +37,7 @@ fi
 unset _llmao_prompt_declaration
 
 command_not_found_handle() {
-  local raw= entry marker= decision kind agent flag executable label
+  local raw= entry marker= decision executable
   local LLMAO_AGENT=${LLMAO_AGENT-} LLMAO_USE_LAUNCH_HISTORY=${LLMAO_USE_LAUNCH_HISTORY-}
   local LLMAO_AUTO_LAUNCH=${LLMAO_AUTO_LAUNCH-} LLMAO_SUGGEST_TYPOS=${LLMAO_SUGGEST_TYPOS-}
   local config_dir=${XDG_CONFIG_HOME:-$HOME/.config}/llmao setting
@@ -58,31 +58,29 @@ command_not_found_handle() {
     fi
   fi
 
-  local -a dictionary agent_args=()
+  local -a dictionary fields
   builtin mapfile -t dictionary < <(builtin compgen -A alias -A function -A builtin -A keyword)
   decision=$(
     if [[ -n $marker ]]; then HISTTIMEFORMAT=$marker builtin history; fi |
       /bin/zsh -df "$_llmao_bash_dir/llmao-bridge.zsh" "$marker" "$raw" \
         "${LLMAO_AGENT-}" "${LLMAO_USE_LAUNCH_HISTORY-}" "$#" "$@" "${dictionary[@]}"
   )
-  IFS=' ' read -r kind agent flag <<< "$decision"
-  case $kind in
+  builtin mapfile -t fields <<< "$decision"
+  case ${fields[0]} in
     typo)
       if [[ ${LLMAO_SUGGEST_TYPOS:-1} == 1 ]]; then
-        builtin printf "Command '%s' not found. Did you mean '%s'?\n" "$1" "$agent" >&2
+        builtin printf "Command '%s' not found. Did you mean '%s'?\n" "$1" "${fields[1]}" >&2
         return 127
       fi
       ;;
     prompt)
-      if executable=$(builtin type -P -- "$agent"); then
-        case $agent in
-          claude) label='Claude Code' ;;
-          codex) label='Codex' ;;
-        esac
-        [[ -z $flag ]] || agent_args+=( "$flag" )
-        builtin printf '✦ Starting %s%s...\n' "$label" "${flag:+ ($flag)}" >&2
-        local IFS=' '
-        builtin exec -- "$executable" "${agent_args[@]}" -- "$*"
+      if executable=$(builtin type -P -- "${fields[1]}"); then
+        builtin printf '✦ Starting %s...\n' "${fields[2]}" >&2
+        if [[ ${fields[1]} == amp ]]; then
+          builtin exec -- "$executable" < <(builtin printf '%s\n' "${fields[3]}")
+        else
+          builtin exec -- "$executable" "${fields[@]:3}"
+        fi
       fi
       ;;
   esac

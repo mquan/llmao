@@ -142,6 +142,65 @@ def check_config(shell):
     assert "agent auto\nlaunch-history off\nauto-launch on\nsuggest-typos off\n" in output, output
 
 
+def check_agent_support(shell, cwd):
+    prompt = "--unknown-option café with spaces"
+    agents = {
+        "opencode": ("OpenCode", [f"--prompt={prompt}"]),
+        "devin": ("Devin CLI", ["--", prompt]),
+        "copilot": ("GitHub Copilot CLI", [f"--interactive={prompt}"]),
+        "agy": ("Antigravity CLI", [f"--prompt-interactive={prompt}"]),
+        "cursor-agent": ("Cursor CLI", ["agent", "--", prompt]),
+        "gemini": ("Gemini CLI", [f"--prompt-interactive={prompt}"]),
+        "kiro-cli": ("Kiro CLI", ["chat", "--", prompt]),
+        "qwen": ("Qwen Code", [f"--prompt-interactive={prompt}"]),
+        "goose": ("Goose", ["run", "--interactive", f"--text={prompt}"]),
+        "pi": ("Pi", ["--", prompt]),
+        "cline": ("Cline CLI", ["-i", "--", prompt]),
+        "amp": ("Amp", []),
+        "auggie": ("Auggie CLI", ["--", prompt]),
+    }
+    stub = """#!/bin/zsh -f
+[[ -t 1 && -t 2 ]] || exit 91
+print -r -- "AGENT=${0:t} ARGC=$# CWD=$PWD"
+if [[ ${0:t} == amp && ! -t 0 ]]; then
+  IFS= read -r prompt || exit 92
+  print -r -- "STDIN=$prompt"
+else
+  [[ -t 0 ]] || exit 91
+  for arg in "$@"; do print -r -- "ARG=$arg"; done
+fi
+exit 42
+"""
+    commands = cwd / f"agents-{shell.name}"
+    commands.mkdir()
+    make_command(commands, "opencode", stub)
+    path = shlex.quote(str(commands))
+    shell.run(f"set -gx PATH {path}" if shell.name == "fish" else f"PATH={path}")
+    assert "Starting OpenCode..." in shell.run("explain this project")
+
+    for name, (label, args) in agents.items():
+        make_command(commands, name, stub)
+        assert f"agent {name}\n" in shell.run(f"PATH=/usr/bin:/bin llmao config agent {name}")
+        output = shell.run(prompt)
+        assert f"Starting {label}..." in output, output
+        assert f"AGENT={name} ARGC={len(args)} CWD={cwd}\n" in output, output
+        assert re.findall(r"^ARG=(.*)$", output, re.M) == args, output
+        if name == "amp":
+            assert f"STDIN={prompt}\n" in output, output
+        shell.status(127 if shell.name == "fish" else 42)
+
+    shell.run("PATH=/usr/bin:/bin llmao config agent auto")
+    assert "Starting " not in shell.run("explain this project")
+    shell.run("PATH=/usr/bin:/bin llmao config launch-history on")
+    for launch in ("kiro-cli", "kiro-cli chat", "devin", "agy", "opencode --help"):
+        shell.run(launch)
+    assert "Starting Kiro CLI..." in shell.run("explain this project")
+    (commands / "agent").symlink_to("cursor-agent")
+    for launch in ("agent", "cursor-agent"):
+        shell.run(launch)
+    assert "Starting Cursor CLI..." in shell.run("explain this project")
+
+
 def check_other_shells(cwd, commands):
     for name, required in (("bash", (4, 0)), ("fish", (3, 6))):
         executable = os.environ.get(f"LLMAO_TEST_{name.upper()}") or shutil.which(name)
@@ -219,6 +278,7 @@ def check_other_shells(cwd, commands):
             shell.read_until(b"READY> ")
             shell.status(130 if name == "bash" else 127)
             check_config(shell)
+            check_agent_support(shell, cwd)
         finally:
             shell.close()
         print(f"{name} PTY integration passed")
@@ -410,6 +470,7 @@ def main():
             output = shell.run("fix the login bug")
             assert "Starting Claude Code..." in output and "FLAG=" not in output, output
             check_config(shell)
+            check_agent_support(shell, cwd)
         finally:
             shell.close()
         check_other_shells(cwd, commands)
