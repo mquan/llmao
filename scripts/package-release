@@ -22,7 +22,7 @@ if [ "$output_dir" = "$root" ]; then
   exit 2
 fi
 archive=$output_dir/llmao-$version.tar.gz
-COPYFILE_DISABLE=1 tar -czf "$archive" -C "$root" README.md llmao.gif install.sh \
+COPYFILE_DISABLE=1 tar -czf "$archive" -C "$root" README.md LICENSE llmao.gif install.sh \
   llmao.plugin.zsh llmao.plugin.bash llmao.plugin.fish llmao-bridge.zsh llmao
 checksum=$(shasum -a 256 < "$archive")
 checksum=${checksum%% *}

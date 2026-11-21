@@ -53,7 +53,7 @@ source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 target_dir=${XDG_DATA_HOME:-"$HOME/.local/share"}/llmao
 mkdir -p "$target_dir"
 install -m 644 "$source_dir/llmao.plugin.zsh" "$source_dir/llmao.plugin.bash" \
-  "$source_dir/llmao.plugin.fish" "$source_dir/llmao-bridge.zsh" "$target_dir/"
+  "$source_dir/llmao.plugin.fish" "$source_dir/llmao-bridge.zsh" "$source_dir/LICENSE" "$target_dir/"
 install -m 755 "$source_dir/llmao" "$target_dir/"
 printf 'Installed llmao in %s\n' "$target_dir"
 

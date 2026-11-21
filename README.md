@@ -9,7 +9,7 @@ zsh: command not found: explain
 
 With **llmao**, natural language text automatically opens my coding agent of choice.
 
-![Terminal demo showing llmao open Codex after the user types “explain this project”](llmao.gif)
+<img src="llmao.gif" width="667" alt="Terminal demo showing llmao open Codex after the user types ‘explain this project’">
 
 Supports all major coding agents on **zsh**, **Bash 4+**, and **Fish 3.6+**.
 
@@ -83,3 +83,7 @@ python3 tests/integration.py
 The first command tests classification. The second uses a pseudo-terminal and agent stubs to check launches, terminal input, Ctrl-C, and fallbacks. It also tests modern Bash and Fish when installed. Bash and Fish use macOS's built-in `/bin/zsh` for the shared classifier.
 
 To prepare a release, run `./scripts/package-release OWNER v0.3.0 OUTPUT_DIRECTORY`. Upload the versioned archive and generated `install.sh` to the matching release of `OWNER/llmao`. Use the generated formula in the tap's `Formula/` directory. The installer and formula both use the checksum of the exact archive.
+
+## License
+
+[MIT](LICENSE)

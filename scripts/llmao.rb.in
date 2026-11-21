@@ -4,12 +4,13 @@ class Llmao < Formula
   url "https://github.com/@OWNER@/llmao/releases/download/@TAG@/llmao-@TAG@.tar.gz"
   version "@VERSION@"
   sha256 "@SHA256@"
+  license "MIT"
 
   depends_on :macos
 
   def install
     (share/"llmao").install "llmao.plugin.zsh", "llmao.plugin.bash",
-                           "llmao.plugin.fish", "llmao-bridge.zsh", "llmao"
+                           "llmao.plugin.fish", "llmao-bridge.zsh", "llmao", "LICENSE"
     bin.install_symlink share/"llmao"/"llmao"
   end
 
