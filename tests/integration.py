@@ -3,10 +3,12 @@ import errno
 import os
 from pathlib import Path
 import pty
+import re
 import select
 import shlex
 import shutil
 import signal
+import subprocess
 import tempfile
 import termios
 import time
@@ -17,9 +19,14 @@ STUB = """#!/bin/zsh -f
 name=${0:t}
 [[ -t 0 && -t 1 && -t 2 ]] || exit 91
 argc=$#
-if [[ $1 == --* ]]; then
+if [[ $1 == (--yolo|--dangerously-skip-permissions) ]]; then
   print -r -- "FLAG=$1"
   shift
+fi
+if [[ $1 == -- ]]; then
+  shift
+  (( --argc ))
+  print -r -- 'LITERAL=1'
 fi
 printf 'AGENT=%s ARGC=%d PROMPT=%s CWD=%s\\n' "$name" "$argc" "$1" "$PWD"
 case $1 in
@@ -35,15 +42,33 @@ exit 42
 
 
 class Shell:
-    def __init__(self, cwd, path):
+    def __init__(self, cwd, path, name="zsh", executable=ZSH, extra_env=None):
+        self.name = name
+        startup = {
+            "zsh": ["-dfi"],
+            "bash": ["--noprofile", "--norc", "-i"],
+            "fish": ["--no-config", "-i"],
+        }
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             os.chdir(cwd)
-            os.execve(ZSH, [ZSH, "-dfi"], {
+            env = {
                 "HOME": str(cwd), "PATH": str(path), "TERM": "dumb",
-            })
+                "LC_ALL": "en_US.UTF-8",
+                "XDG_CONFIG_HOME": str(cwd / "config"),
+                "XDG_DATA_HOME": str(cwd / "data"),
+            }
+            if name == "fish":
+                env.update(TERM="xterm", fish_features="no-query-term,no-mark-prompt")
+            env.update(extra_env or {})
+            os.execve(executable, [executable, *startup[name]], env)
         self.pending = b""
-        self.send("unsetopt zle prompt_cr prompt_sp; PS1=$'\\x52EADY> '; PS2='MORE> '")
+        prompts = {
+            "zsh": "unsetopt zle prompt_cr prompt_sp; PS1=$'\\x52EADY> '; PS2='MORE> '",
+            "bash": "PS1=$'\\x52EADY> '; unset HISTFILE",
+            "fish": "function fish_prompt; printf '%s%s> ' RE ADY; end",
+        }
+        self.send(prompts[name])
         self.read_until(b"READY> ")
         attributes = termios.tcgetattr(self.fd)
         attributes[3] &= ~termios.ECHO
@@ -75,7 +100,8 @@ class Shell:
         return self.read_until(b"READY> ")
 
     def status(self, expected):
-        output = self.run("print -r -- STATUS=$?")
+        last_status = "$status" if self.name == "fish" else "$?"
+        output = self.run(f"printf 'STATUS=%s\\n' {last_status}")
         assert f"STATUS={expected}\n" in output, output
 
     def close(self):
@@ -93,6 +119,111 @@ def make_command(path, name, body):
     file.chmod(0o755)
 
 
+def check_config(shell):
+    def configure(setting, value):
+        output = shell.run(f"PATH=/usr/bin:/bin llmao config {setting} {value}")
+        assert f"{setting} {value}\n" in output, output
+
+    configure("agent", "codex")
+    output = shell.run("explain this project")
+    assert "Starting Codex..." in output and "AGENT=codex" in output, output
+    configure("auto-launch", "off")
+    output = shell.run("explain this project")
+    assert "Starting " not in output, output
+    configure("suggest-typos", "off")
+    output = shell.run("gti status")
+    assert "Did you mean" not in output, output
+    configure("auto-launch", "on")
+    configure("launch-history", "off")
+    configure("agent", "auto")
+    output = shell.run("explain this project")
+    assert "Starting " not in output, output
+    output = shell.run("llmao config")
+    assert "agent auto\nlaunch-history off\nauto-launch on\nsuggest-typos off\n" in output, output
+
+
+def check_other_shells(cwd, commands):
+    for name, required in (("bash", (4, 0)), ("fish", (3, 6))):
+        executable = os.environ.get(f"LLMAO_TEST_{name.upper()}") or shutil.which(name)
+        if not executable:
+            print(f"Skipping {name} PTY checks (shell unavailable)")
+            continue
+        extra_env = {"XDG_CONFIG_HOME": str(cwd / f"config-{name}")}
+        if os.environ.get("LLMAO_TEST_DYLD"):
+            extra_env["DYLD_LIBRARY_PATH"] = os.environ["LLMAO_TEST_DYLD"]
+        version = subprocess.check_output(
+            [executable, "--version"], text=True, env={**os.environ, **extra_env}
+        )
+        found = re.search(r"(\d+)\.(\d+)", version)
+        if tuple(map(int, found.groups())) < required:
+            print(f"Skipping {name} PTY checks (version too old)")
+            continue
+        shell = Shell(cwd, commands, name, executable, extra_env)
+        try:
+            source = f"source {shlex.quote(str(PLUGIN.with_suffix('.' + name)))}"
+            agent_status = 42 if name == "bash" else 127
+            previous = (
+                "command_not_found_handle() { printf 'PREVIOUS=%s\\n' \"$1\"; return 44; }"
+                if name == "bash"
+                else "function fish_command_not_found; printf 'PREVIOUS=%s\\n' $argv[1]; return 44; end"
+            )
+            shell.run(previous)
+            if name == "bash":
+                shell.run("PROMPT_COMMAND=('printf PC1' 'printf PC2'); HISTCONTROL=ignorespace")
+            output = shell.run(source)
+            if name == "bash":
+                assert "PC1PC2" in output, output
+            shell.run(source)
+            output = shell.run("git status")
+            assert "GIT=status" in output and "Starting " not in output, output
+            output = shell.run("gti status")
+            assert "Did you mean 'git'?" in output, output
+            shell.status(127)
+            output = shell.run("deploy-y")
+            assert "PREVIOUS=deploy-y" in output and "Starting " not in output, output
+            shell.status(44 if name == "bash" else 127)
+            output = shell.run("explain this project")
+            assert "PREVIOUS=explain" in output and "Starting " not in output, output
+            shell.run("LLMAO_AGENT=claude" if name == "bash" else "set -g LLMAO_AGENT claude")
+            for line in ("explain what this project is about", "解释一下这个项目", "foobar", "foo --version"):
+                output = shell.run(line)
+                assert "Starting Claude Code..." in output and "LITERAL=1" in output, output
+                assert f"AGENT=claude ARGC=1 PROMPT={line}" in output, output
+                shell.status(agent_status)
+            for line in (
+                "fix the login bug; true",
+                "fix the login bug >/dev/tty",
+                "why does $(printf login) fail",
+            ):
+                output = shell.run(line)
+                assert "Starting " not in output and "PREVIOUS=" in output, (line, output)
+            if name == "bash":
+                shell.run("fix the login bug")
+                output = shell.run(' fix the "login" bug')
+                assert "Starting " not in output and "PREVIOUS=fix" in output, output
+
+            shell.run("unset LLMAO_AGENT" if name == "bash" else "set -e LLMAO_AGENT")
+            shell.run("codex --yolo")
+            shell.run("LLMAO_USE_LAUNCH_HISTORY=1" if name == "bash" else "set -g LLMAO_USE_LAUNCH_HISTORY 1")
+            output = shell.run("fix the login bug")
+            assert "Starting Codex (--yolo)" in output and "FLAG=--yolo" in output, output
+            shell.status(agent_status)
+            shell.send("explain terminal input")
+            assert "AGENT=codex" in shell.read_until(f"CWD={cwd}\r\n".encode())
+            shell.send("readable")
+            assert "READ=readable" in shell.read_until(b"READY> ")
+            shell.status(agent_status)
+            shell.send("explain interrupt handling")
+            shell.read_until(f"CWD={cwd}\r\n".encode())
+            os.write(shell.fd, b"\x03")
+            shell.read_until(b"READY> ")
+            shell.status(130 if name == "bash" else 127)
+            check_config(shell)
+        finally:
+            shell.close()
+        print(f"{name} PTY integration passed")
+
+
 def main():
     with tempfile.TemporaryDirectory(prefix="llmao-") as tmp:
         cwd = Path(tmp).resolve()
@@ -107,6 +238,8 @@ def main():
 
             for name in ("claude", "codex"):
                 make_command(commands, name, STUB)
+            for name in ("deploy-x", "deploy-z"):
+                make_command(commands, name, "#!/bin/zsh -f\nexit 0\n")
             make_command(commands, "git", "#!/bin/zsh -f\nprint -r -- GIT=$*\n")
             source = f"source {shlex.quote(str(PLUGIN))}"
             shell.run(source)
@@ -116,12 +249,23 @@ def main():
             shell.status(0)
             missing("gti status", "Did you mean 'git'?")
             missing("gti 'path with spaces' --help", "Did you mean 'git'?")
-            missing("foobar", "zsh: command not found: foobar")
-            missing("foo --version", "zsh: command not found: foo")
+            missing("deploy-y", "zsh: command not found: deploy-y")
             missing("./gti status", "no such file or directory: ./gti")
+            missing("explain this project", "zsh: command not found: explain")
+            shell.run("LLMAO_AGENT=claude")
+            for line, prompt in (
+                ("foobar", "foobar"),
+                ("foo --version", "foo --version"),
+                ("--missing-option", "--missing-option"),
+                ("explique cette erreur", "explique cette erreur"),
+                ("解释一下这个项目", "解释一下这个项目"),
+                ('unknown-llmao "login bug"', "unknown-llmao login bug"),
+            ):
+                output = shell.run(line)
+                assert "Starting Claude Code..." in output and "LITERAL=1" in output, (line, output)
+                assert f"ARGC=1 PROMPT={prompt} CWD={cwd}" in output, (line, output)
+                shell.status(42)
             for line in (
-                "fix the \"login bug\"",
-                "fix 'the' login bug",
                 "fix the \\login bug",
                 "fix the login bug; true",
                 "fix the login bug && true",
@@ -174,8 +318,7 @@ def main():
             shell.run("unset LLMAO_AUTO_LAUNCH LLMAO_SUGGEST_TYPOS")
             shell.run("unset LLMAO_AGENT")
             shell.run("codex --yolo")
-            output = shell.run("fix the login bug")
-            assert "Starting Claude Code..." in output and "FLAG=" not in output, output
+            missing("fix the login bug", "zsh: command not found: fix")
             shell.run("LLMAO_USE_LAUNCH_HISTORY=1")
             output = shell.run("fix the login bug")
             assert "Starting Codex (--yolo)" in output and "FLAG=--yolo" in output, output
@@ -201,7 +344,15 @@ def main():
             shell.run(f"PATH={shlex.quote(str(other_path))}")
             missing("kubect get pods", "Did you mean 'kubectl'?")
             missing("gti status", "zsh: command not found: gti")
+            make_command(other_path, "codex", STUB)
             missing("fix the login bug", "zsh: command not found: fix")
+            shell.run("unset LLMAO_AGENT")
+            output = shell.run("fix the login bug")
+            assert "Starting Codex (--yolo)" in output and "FLAG=--yolo" in output, output
+            shell.run("unset LLMAO_USE_LAUNCH_HISTORY")
+            output = shell.run("fix the login bug")
+            assert "Starting Codex..." in output and "FLAG=" not in output, output
+            shell.status(42)
         finally:
             shell.close()
 
@@ -210,7 +361,7 @@ def main():
             shell.run('function command_not_found_handler { print -r -- "PREVIOUS:$#:${2}"; return 44; }')
             shell.run(source)
             shell.run(source)
-            output = shell.run("xyzzy 'kept as one argument'")
+            output = shell.run("LLMAO_AUTO_LAUNCH=0 xyzzy 'kept as one argument'")
             assert "PREVIOUS:2:kept as one argument" in output, output
             shell.status(44)
             shell.run("LLMAO_AGENT=unsupported")
@@ -224,8 +375,7 @@ def main():
         try:
             shell.run(source)
             shell.run("LLMAO_USE_LAUNCH_HISTORY=1; HISTSIZE=512")
-            output = shell.run("fix the login bug")
-            assert "Starting Claude Code..." in output and "FLAG=" not in output, output
+            missing("fix the login bug", "zsh: command not found: fix")
 
             # A tie follows the most recent eligible launch.
             shell.run("claude")
@@ -236,7 +386,6 @@ def main():
             shell.run("claude")
             output = shell.run("fix the login bug")
             assert "Starting Claude Code..." in output and "FLAG=" not in output, output
-
             # Older and more recent Codex launches would win an all-history
             # tally, but the last ten eligible launches are six Claude to four.
             for _ in range(6):
@@ -260,8 +409,10 @@ def main():
             shell.run("claude")
             output = shell.run("fix the login bug")
             assert "Starting Claude Code..." in output and "FLAG=" not in output, output
+            check_config(shell)
         finally:
             shell.close()
+        check_other_shells(cwd, commands)
     print("PTY integration passed (terminal, signals, status, discovery, syntax, fallback, launch history)")
 
 

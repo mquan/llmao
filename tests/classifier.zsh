@@ -16,7 +16,7 @@ check() {
   # Decode quoting without performing substitutions or running the input.
   words=( "${(@Q)words}" )
   start=$EPOCHREALTIME
-  _llmao_classify "${#words}" "${words[@]}" "${dictionary[@]}"
+  _llmao_classify "${words[1]}" "${dictionary[@]}"
   duration=$(( EPOCHREALTIME - start ))
   (( elapsed += duration, max_elapsed = duration > max_elapsed ? duration : max_elapsed ))
   (( ++total ))
@@ -34,7 +34,7 @@ check() {
 for profile in developer minimal; do
   dictionary=( git python kubectl docker npm pnpm node cargo claude codex grep printf make curl )
   if [[ $profile == developer ]]; then
-    dictionary+=( bun zig go rustup helm terraform ruby swift xcodebuild ls cat fi git-lfs )
+    dictionary+=( bun zig go rustup terraform ruby swift xcodebuild ls cat fi git-lfs )
   fi
   while IFS=$'\t' read -r expected input suggestion; do
     check "$expected" "$input" "$suggestion"
@@ -43,23 +43,27 @@ done
 
 dictionary=( git "weird|name" )
 check TYPO 'gti status' git
-check UNKNOWN 'pyhton app.py'
+check AGENT_PROMPT 'pyhton app.py'
 dictionary=( python python3 )
 check TYPO 'pyhton app.py' python
 dictionary=( python python3 pythn )
-check UNKNOWN 'pyton app.py'
+check TYPO 'pyton app.py'
 dictionary=( fit )
 check AGENT_PROMPT 'fix the login bug'
+dictionary=( help helm )
+check UNKNOWN 'help me'
+dictionary=( helm )
+check TYPO 'help me' helm
 dictionary=( fix fit )
 check UNKNOWN 'fix the login bug'
 dictionary=( docker docker )
 check TYPO 'dcoker --version' docker
 dictionary=( npm )
-check UNKNOWN 'np test'
-check UNKNOWN 'npx test'
+check AGENT_PROMPT 'np test'
+check AGENT_PROMPT 'npx test'
 
 printf '%d cases, %d failed\n' "$total" "$failures"
-printf '%d false agent launches, %d missed prompts, %d/%d typos correctly suggested\n' \
+printf '%d unexpected launch candidates, %d missed candidates, %d/%d typos correctly suggested\n' \
   "$false_launches" "$missed_prompts" "$typo_correct" "$typo_total"
 printf 'Classifier mean %.3f ms, max %.3f ms (fixture dictionaries)\n' \
   "$((elapsed * 1000 / total))" "$((max_elapsed * 1000))"
@@ -68,9 +72,9 @@ zmodload zsh/parameter
 dictionary=( "${(@k)commands}" "${(@k)aliases}" "${(@k)builtins}" )
 start=$EPOCHREALTIME
 repeat 150; do
-  _llmao_classify 2 gti status "${dictionary[@]}"
-  _llmao_classify 3 explain this error "${dictionary[@]}"
-  _llmao_classify 2 unknown-llmao-benchmark --help "${dictionary[@]}"
+  _llmao_classify gti "${dictionary[@]}"
+  _llmao_classify explain "${dictionary[@]}"
+  _llmao_classify unknown-llmao-benchmark "${dictionary[@]}"
 done
 printf 'Classifier mean %.3f ms with local dictionary (%d entries, 450 calls)\n' \
   "$(((EPOCHREALTIME - start) * 1000 / 450))" "${#dictionary}"

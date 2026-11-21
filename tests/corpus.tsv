@@ -92,90 +92,90 @@ AGENT_PROMPT	WHY DID THE JOB FAIL
 AGENT_PROMPT	explain error E100.
 AGENT_PROMPT	why do things fail.
 AGENT_PROMPT	fix the API error.
-UNKNOWN	deploy
-UNKNOWN	foobar
-UNKNOWN	foo --version
-UNKNOWN	unknown-tool --help
-UNKNOWN	hello
-UNKNOWN	yo
-UNKNOWN	fix
-UNKNOWN	fix login
-UNKNOWN	build release linux
-UNKNOWN	debug server start
-UNKNOWN	update db migrate
-UNKNOWN	create service staging
-UNKNOWN	add remote origin
-UNKNOWN	review PR 12
-UNKNOWN	write log stdout
-UNKNOWN	fix --verbose the login bug
-UNKNOWN	fix the login bug -v
-UNKNOWN	fix the scope --
-UNKNOWN	explain -n this error
-UNKNOWN	explain ./src/auth.js please
-UNKNOWN	explain this app.py
-UNKNOWN	explain the value key=value
-UNKNOWN	explain this v1.2
-UNKNOWN	why is IPv6 down --debug
-UNKNOWN	why not
-UNKNOWN	when exactly
-UNKNOWN	what if
-UNKNOWN	how come
-UNKNOWN	where logs
-UNKNOWN	can I fix this
-UNKNOWN	can someone help
-UNKNOWN	could I change this
-UNKNOWN	would someone look
-UNKNOWN	help with tests
-UNKNOWN	please deploy
-UNKNOWN	please rerun job
-UNKNOWN	good morning team
-UNKNOWN	this is broken
-UNKNOWN	my application fails
-UNKNOWN	server health status
+AGENT_PROMPT	deploy
+AGENT_PROMPT	foobar
+AGENT_PROMPT	foo --version
+AGENT_PROMPT	unknown-tool --help
+AGENT_PROMPT	hello
+AGENT_PROMPT	yo
+AGENT_PROMPT	fix
+AGENT_PROMPT	fix login
+AGENT_PROMPT	build release linux
+AGENT_PROMPT	debug server start
+AGENT_PROMPT	update db migrate
+AGENT_PROMPT	create service staging
+AGENT_PROMPT	add remote origin
+AGENT_PROMPT	review PR 12
+AGENT_PROMPT	write log stdout
+AGENT_PROMPT	fix --verbose the login bug
+AGENT_PROMPT	fix the login bug -v
+AGENT_PROMPT	fix the scope --
+AGENT_PROMPT	explain -n this error
+AGENT_PROMPT	explain ./src/auth.js please
+AGENT_PROMPT	explain this app.py
+AGENT_PROMPT	explain the value key=value
+AGENT_PROMPT	explain this v1.2
+AGENT_PROMPT	why is IPv6 down --debug
+AGENT_PROMPT	why not
+AGENT_PROMPT	when exactly
+AGENT_PROMPT	what if
+AGENT_PROMPT	how come
+AGENT_PROMPT	where logs
+AGENT_PROMPT	can I fix this
+AGENT_PROMPT	can someone help
+AGENT_PROMPT	could I change this
+AGENT_PROMPT	would someone look
+AGENT_PROMPT	help with tests
+AGENT_PROMPT	please deploy
+AGENT_PROMPT	please rerun job
+AGENT_PROMPT	good morning team
+AGENT_PROMPT	this is broken
+AGENT_PROMPT	my application fails
+AGENT_PROMPT	server health status
 UNKNOWN	git status
 UNKNOWN	python app.py
 UNKNOWN	npm run dev
 UNKNOWN	docker ps
 UNKNOWN	pnpm exec vite
-UNKNOWN	pip install pytest
-UNKNOWN	ssh production
+AGENT_PROMPT	pip install pytest
+AGENT_PROMPT	ssh production
 UNKNOWN	kubectl get pods
-UNKNOWN	unknown-command get logs
-UNKNOWN	ab
-UNKNOWN	np
-UNKNOWN	gix status
-UNKNOWN	gx status
+AGENT_PROMPT	unknown-command get logs
+AGENT_PROMPT	ab
+AGENT_PROMPT	np
+AGENT_PROMPT	gix status
+AGENT_PROMPT	gx status
 UNKNOWN	./gti status
 UNKNOWN	/usr/local/bin/gti status
 UNKNOWN	missing/path run
-UNKNOWN	fix the login bug | cat
-UNKNOWN	fix the login bug && true
-UNKNOWN	fix the login bug &
-UNKNOWN	fix the login bug > out
-UNKNOWN	fix the login bug ; true
-UNKNOWN	fix the login bug < infile
-UNKNOWN	fix the login bug \*
-UNKNOWN	fix the login bug [abc]
-UNKNOWN	fix the login bug {a,b}
-UNKNOWN	fix the login bug ~
-UNKNOWN	fix the login bug # note
-UNKNOWN	why does \$(tool) fail
-UNKNOWN	why does `tool` fail
-UNKNOWN	why does \$thing fail
-UNKNOWN	why does <(tool) fail
-UNKNOWN	fix the "login bug"
-UNKNOWN	explain this 'error message'
-UNKNOWN	fix '' this bug
-UNKNOWN	fix the login bug?
-UNKNOWN	explain this /path
-UNKNOWN	explain --option=on please
-UNKNOWN	unknown -abc foo
-UNKNOWN	what about that
-UNKNOWN	implement
-UNKNOWN	improve docs
-UNKNOWN	repeat the test
-UNKNOWN	unknown:command test
-UNKNOWN	foo bar baz
+AGENT_PROMPT	fix the login bug | cat
+AGENT_PROMPT	fix the login bug && true
+AGENT_PROMPT	fix the login bug &
+AGENT_PROMPT	fix the login bug > out
+AGENT_PROMPT	fix the login bug ; true
+AGENT_PROMPT	fix the login bug < infile
+AGENT_PROMPT	fix the login bug \*
+AGENT_PROMPT	fix the login bug [abc]
+AGENT_PROMPT	fix the login bug {a,b}
+AGENT_PROMPT	fix the login bug ~
+AGENT_PROMPT	fix the login bug # note
+AGENT_PROMPT	why does \$(tool) fail
+AGENT_PROMPT	why does `tool` fail
+AGENT_PROMPT	why does \$thing fail
+AGENT_PROMPT	why does <(tool) fail
+AGENT_PROMPT	fix the "login bug"
+AGENT_PROMPT	explain this 'error message'
+AGENT_PROMPT	fix '' this bug
+AGENT_PROMPT	fix the login bug?
+AGENT_PROMPT	explain this /path
+AGENT_PROMPT	explain --option=on please
+AGENT_PROMPT	unknown -abc foo
+AGENT_PROMPT	what about that
+AGENT_PROMPT	implement
+AGENT_PROMPT	improve docs
+AGENT_PROMPT	repeat the test
+AGENT_PROMPT	unknown:command test
+AGENT_PROMPT	foo bar baz
 UNKNOWN	git --help
 UNKNOWN	printf test
 UNKNOWN	cargo build
@@ -185,10 +185,10 @@ UNKNOWN	grep -n foo
 UNKNOWN	codex help
 UNKNOWN	claude help
 UNKNOWN	make test
-UNKNOWN	why exactly now
-UNKNOWN	deploy staging now
-UNKNOWN	restart the server
-UNKNOWN	help me
+AGENT_PROMPT	why exactly now
+AGENT_PROMPT	deploy staging now
+AGENT_PROMPT	restart the server
+AGENT_PROMPT	help me
 TYPO	gti status	git
 TYPO	igt status	git
 TYPO	giit status	git
@@ -215,7 +215,7 @@ TYPO	dockerx --help	docker
 TYPO	nmp run dev	npm
 TYPO	pnm run dev	npm
 TYPO	npmm run dev	npm
-UNKNOWN	nnpm run dev
+TYPO	nnpm run dev
 TYPO	cagro build	cargo
 TYPO	caro build	cargo
 TYPO	carggo build	cargo
@@ -243,3 +243,10 @@ TYPO	mame test	make
 TYPO	culr example.org	curl
 TYPO	curll example.org	curl
 TYPO	cirl --help	curl
+AGENT_PROMPT	explique cette erreur
+AGENT_PROMPT	arregla este problema
+AGENT_PROMPT	почему тест не проходит
+AGENT_PROMPT	解释一下这个项目
+AGENT_PROMPT	このエラーを説明して
+AGENT_PROMPT	اشرح هذا الخطأ
+AGENT_PROMPT	--missing-option

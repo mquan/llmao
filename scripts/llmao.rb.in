@@ -1,5 +1,5 @@
 class Llmao < Formula
-  desc "Launch a coding agent for natural-language requests typed into zsh"
+  desc "Launch a coding agent for natural-language requests typed into your shell"
   homepage "https://github.com/@OWNER@/llmao"
   url "https://github.com/@OWNER@/llmao/releases/download/@TAG@/llmao-@TAG@.tar.gz"
   version "@VERSION@"
@@ -8,20 +8,27 @@ class Llmao < Formula
   depends_on :macos
 
   def install
-    (share/"llmao").install "llmao.plugin.zsh"
+    (share/"llmao").install "llmao.plugin.zsh", "llmao.plugin.bash",
+                           "llmao.plugin.fish", "llmao-bridge.zsh", "llmao"
+    bin.install_symlink share/"llmao"/"llmao"
   end
 
   def caveats
     <<~EOS
-      Add this to your .zshrc after any existing command-not-found integration:
+      Add the line for your shell after any existing command-not-found integration.
+      zsh (~/.zshrc)
         source "#{opt_share}/llmao/llmao.plugin.zsh"
+      Bash 4+ (~/.bashrc or your Bash login profile)
+        source "#{opt_share}/llmao/llmao.plugin.bash"
+      Fish 3.6+ (~/.config/fish/config.fish)
+        source "#{opt_share}/llmao/llmao.plugin.fish"
     EOS
   end
 
   test do
     system "/bin/zsh", "-n", share/"llmao/llmao.plugin.zsh"
     output = shell_output("/bin/zsh -dfc 'source #{share}/llmao/llmao.plugin.zsh; " \
-                          "_llmao_classify 2 gti status git; print -r -- \"$reply[*]\"'")
+                          "_llmao_classify gti git; print -r -- \"$reply[*]\"'")
     assert_equal "TYPO git", output.strip
   end
 end

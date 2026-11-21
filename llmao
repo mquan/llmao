@@ -1,0 +1,73 @@
+#!/bin/sh
+set -eu
+
+usage() {
+  cat <<'EOF'
+Usage: llmao config [setting value]
+
+  agent           auto | claude | codex
+  launch-history  on | off
+  auto-launch     on | off
+  suggest-typos   on | off
+EOF
+}
+
+case ${1-} in
+  config) shift ;;
+  -h|--help) usage; exit 0 ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+config_dir=${XDG_CONFIG_HOME:-"${HOME:?}/.config"}/llmao
+
+show_setting() {
+  setting_value=$3
+  if [ -r "$config_dir/$2" ]; then
+    IFS= read -r setting_value < "$config_dir/$2" || :
+  fi
+  case "$1:$setting_value" in
+    agent:) setting_value=auto ;;
+    *:1) setting_value=on ;;
+    *:0) setting_value=off ;;
+  esac
+  printf '%s %s\n' "$1" "$setting_value"
+}
+
+if [ "$#" -eq 0 ]; then
+  show_setting agent LLMAO_AGENT ''
+  show_setting launch-history LLMAO_USE_LAUNCH_HISTORY 0
+  show_setting auto-launch LLMAO_AUTO_LAUNCH 1
+  show_setting suggest-typos LLMAO_SUGGEST_TYPOS 1
+  exit 0
+fi
+
+if [ "$#" -ne 2 ]; then
+  usage >&2
+  exit 2
+fi
+
+case $1 in
+  agent) setting=LLMAO_AGENT ;;
+  launch-history) setting=LLMAO_USE_LAUNCH_HISTORY ;;
+  auto-launch) setting=LLMAO_AUTO_LAUNCH ;;
+  suggest-typos) setting=LLMAO_SUGGEST_TYPOS ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+case "$1:$2" in
+  agent:auto) setting_value='' ;;
+  agent:claude|agent:codex) setting_value=$2 ;;
+  agent:*) usage >&2; exit 2 ;;
+  *:on) setting_value=1 ;;
+  *:off) setting_value=0 ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+umask 077
+mkdir -p -- "$config_dir"
+temp=$(mktemp "$config_dir/.setting.XXXXXXXX")
+trap 'rm -f -- "$temp"' EXIT
+trap 'exit 1' HUP INT TERM
+printf '%s\n' "$setting_value" > "$temp"
+mv -f -- "$temp" "$config_dir/$setting"
+printf '%s %s\n' "$1" "$2"
