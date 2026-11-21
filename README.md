@@ -7,11 +7,9 @@ $ explain what this project is about
 zsh: command not found: explain
 ```
 
-With **llmao**, natural language text automatically opens my coding agent of choice.
+With **llmao**, natural language text automatically opens my coding agent of choice. Supports all [major coding agents](#supported-agents) on **zsh**, **Bash 4+**, and **Fish 3.6+**.
 
-<img src="llmao.gif" width="667" alt="Terminal demo showing llmao open Codex after the user types ‘explain this project’">
-
-Supports all [major coding agents](#supported-agents) on **zsh**, **Bash 4+**, and **Fish 3.6+**.
+<img src="llmao.gif" width="700" alt="Terminal demo showing llmao open Codex after the user types ‘explain this project’">
 
 ## Install
 
