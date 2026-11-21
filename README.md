@@ -19,7 +19,16 @@ With **llmao**, natural language text automatically opens my coding agent of cho
 brew install mquan/tap/llmao
 ```
 
-Add the printed `source` line to your shell config.
+For zsh, run this once to load llmao in future terminal windows:
+
+```zsh
+llmao_rc="${ZDOTDIR:-$HOME}/.zshrc"
+llmao_source="source \"$(brew --prefix mquan/tap/llmao)/share/llmao/llmao.plugin.zsh\""
+grep -Fqx -- "$llmao_source" "$llmao_rc" 2>/dev/null ||
+  printf '\n%s\n' "$llmao_source" >> "$llmao_rc"
+```
+
+For Bash or Fish, add the `source` line Homebrew prints for your shell to its startup file.
 
 **Standalone install with automatic activation**
 
@@ -27,7 +36,7 @@ Add the printed `source` line to your shell config.
 curl -fsSL https://github.com/mquan/llmao/releases/latest/download/install.sh | sh -s -- --activate
 ```
 
-Open a new shell after installation.
+After either install, open a new terminal to load llmao.
 
 ## How it works
 
