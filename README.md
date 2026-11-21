@@ -34,7 +34,7 @@ Open a new shell after installation.
 - **The shell goes first.** llmao kicks in only when your interactive shell can’t find a command. Commands like `git status` run as usual.
 - **Likely typos stay in the shell.** Type `gti status` and llmao suggests `git` if it’s the only match. If several commands match, you get the usual shell error.
 - **Everything runs locally.** A line like `explain this project` can open your agent in the same terminal, using your current folder. Your shell still handles lines that use syntax like `|`, `>`, or `*.py`.
-- **Coding agent selection.** If you have one supported agent installed, llmao uses it automatically. If you have several, choose one or enable launch history to pick the agent you launched most often in your last 10 recognized launches. Ties go to the most recent launch. See [Configure](#configure).
+- **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
 
 ## Configure
 
@@ -42,7 +42,7 @@ Open a new shell after installation.
 llmao config                     # Show saved preferences
 llmao config agent codex         # Always use Codex
 llmao config agent auto          # Use automatic selection
-llmao config launch-history on   # Use recent launches in auto mode
+llmao config launch-history off  # Ignore recent launches in auto mode
 ```
 
 Run `llmao --help` for all settings. Changes apply immediately.
@@ -71,6 +71,8 @@ Install and configure your agent separately. If llmao can’t select an installe
 
 Launch history counts recognized start commands in your shell history, such as `opencode` or `kiro-cli chat`. Fish merges repeated identical commands into a single history entry, so those repeats count once.
 
+By default, launch history is used to choose an agent. Explicitly setting `llmao config launch-history on` can also reuse a supported approval-skipping flag from the chosen agent’s most recent launch.
+
 ## Development
 
 ```sh
@@ -80,7 +82,7 @@ python3 tests/integration.py
 
 The first command tests classification. The second uses a pseudo-terminal and agent stubs to check launches, terminal input, Ctrl-C, and fallbacks. It also tests modern Bash and Fish when installed. Bash and Fish use macOS's built-in `/bin/zsh` for the shared classifier.
 
-To prepare a release, run `./scripts/package-release OWNER v0.3.0 OUTPUT_DIRECTORY`. Upload the versioned archive and generated `install.sh` to the matching release of `OWNER/llmao`. Use the generated formula in the tap's `Formula/` directory. The installer and formula both use the checksum of the exact archive.
+To prepare a release, run `./scripts/package-release OWNER v0.4.0 OUTPUT_DIRECTORY`. Upload the versioned archive and generated `install.sh` to the matching release of `OWNER/llmao`. Use the generated formula in the tap's `Formula/` directory. The installer and formula both use the checksum of the exact archive.
 
 ## License
 

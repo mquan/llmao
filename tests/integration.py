@@ -124,6 +124,7 @@ def check_config(shell):
         output = shell.run(f"PATH=/usr/bin:/bin llmao config {setting} {value}")
         assert f"{setting} {value}\n" in output, output
 
+    assert "launch-history on\n" in shell.run("llmao config")
     configure("agent", "codex")
     output = shell.run("explain this project")
     assert "Starting Codex..." in output and "AGENT=codex" in output, output
@@ -142,7 +143,7 @@ def check_config(shell):
     assert "agent auto\nlaunch-history off\nauto-launch on\nsuggest-typos off\n" in output, output
 
 
-def check_agent_support(shell, cwd):
+def check_agent_support(shell, cwd, original_commands):
     prompt = "--unknown-option café with spaces"
     agents = {
         "opencode": ("OpenCode", [f"--prompt={prompt}"]),
@@ -191,7 +192,6 @@ exit 42
 
     shell.run("PATH=/usr/bin:/bin llmao config agent auto")
     assert "Starting " not in shell.run("explain this project")
-    shell.run("PATH=/usr/bin:/bin llmao config launch-history on")
     for launch in ("kiro-cli", "kiro-cli chat", "devin", "agy", "opencode --help"):
         shell.run(launch)
     assert "Starting Kiro CLI..." in shell.run("explain this project")
@@ -199,6 +199,8 @@ exit 42
     for launch in ("agent", "cursor-agent"):
         shell.run(launch)
     assert "Starting Cursor CLI..." in shell.run("explain this project")
+    path = shlex.quote(str(original_commands))
+    shell.run(f"set -gx PATH {path}" if shell.name == "fish" else f"PATH={path}")
 
 
 def check_other_shells(cwd, commands):
@@ -263,6 +265,8 @@ def check_other_shells(cwd, commands):
 
             shell.run("unset LLMAO_AGENT" if name == "bash" else "set -e LLMAO_AGENT")
             shell.run("codex --yolo")
+            output = shell.run("fix the login bug")
+            assert "Starting Codex..." in output and "FLAG=" not in output, output
             shell.run("LLMAO_USE_LAUNCH_HISTORY=1" if name == "bash" else "set -g LLMAO_USE_LAUNCH_HISTORY 1")
             output = shell.run("fix the login bug")
             assert "Starting Codex (--yolo)" in output and "FLAG=--yolo" in output, output
@@ -277,8 +281,9 @@ def check_other_shells(cwd, commands):
             os.write(shell.fd, b"\x03")
             shell.read_until(b"READY> ")
             shell.status(130 if name == "bash" else 127)
+            shell.run("unset LLMAO_USE_LAUNCH_HISTORY" if name == "bash" else "set -e LLMAO_USE_LAUNCH_HISTORY")
+            check_agent_support(shell, cwd, commands)
             check_config(shell)
-            check_agent_support(shell, cwd)
         finally:
             shell.close()
         print(f"{name} PTY integration passed")
@@ -378,7 +383,8 @@ def main():
             shell.run("unset LLMAO_AUTO_LAUNCH LLMAO_SUGGEST_TYPOS")
             shell.run("unset LLMAO_AGENT")
             shell.run("codex --yolo")
-            missing("fix the login bug", "zsh: command not found: fix")
+            output = shell.run("fix the login bug")
+            assert "Starting Codex..." in output and "FLAG=" not in output, output
             shell.run("LLMAO_USE_LAUNCH_HISTORY=1")
             output = shell.run("fix the login bug")
             assert "Starting Codex (--yolo)" in output and "FLAG=--yolo" in output, output
@@ -469,8 +475,9 @@ def main():
             shell.run("claude")
             output = shell.run("fix the login bug")
             assert "Starting Claude Code..." in output and "FLAG=" not in output, output
+            shell.run("unset LLMAO_USE_LAUNCH_HISTORY")
+            check_agent_support(shell, cwd, commands)
             check_config(shell)
-            check_agent_support(shell, cwd)
         finally:
             shell.close()
         check_other_shells(cwd, commands)

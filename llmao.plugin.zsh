@@ -73,7 +73,7 @@ function _llmao_agent_args {
   if (( ${#installed} == 1 )); then
     reply=( "${installed[1]}" )
   fi
-  [[ ${LLMAO_USE_LAUNCH_HISTORY:-0} == 1 ]] && (( ${#installed} > 0 )) || return 0
+  [[ ${LLMAO_USE_LAUNCH_HISTORY:-1} == 1 ]] && (( ${#installed} > 0 )) || return 0
 
   # The caller provides newest entries first. Filter before taking ten so
   # unrelated commands and subcommands such as `codex review` don't vote.
@@ -111,7 +111,8 @@ function _llmao_agent_args {
   done
   [[ -n $winner ]] || return 0
   reply=( "$winner" )
-  if [[ -n ${flags[$winner]} ]]; then
+  # Replay permission flags only when launch history was explicitly enabled.
+  if [[ ${LLMAO_USE_LAUNCH_HISTORY:-} == 1 && -n ${flags[$winner]} ]]; then
     reply+=( "${flags[$winner]}" )
   fi
 }
@@ -192,7 +193,7 @@ function _llmao_handle {
       if [[ ${LLMAO_AUTO_LAUNCH:-1} == 1 && -t 0 && -t 1 && -t 2 &&
             $ZSH_SUBSHELL == 1 && ${#funcstack} == 2 ]] &&
          _llmao_prompt_matches "${history[$HISTCMD]}" "$@"; then
-        if [[ -z ${LLMAO_AGENT:-} && ${LLMAO_USE_LAUNCH_HISTORY:-0} == 1 ]]; then
+        if [[ -z ${LLMAO_AGENT:-} && ${LLMAO_USE_LAUNCH_HISTORY:-1} == 1 ]]; then
           _llmao_agent_args "${history[@]}"
         else
           _llmao_agent_args

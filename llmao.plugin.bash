@@ -53,7 +53,7 @@ command_not_found_handle() {
     if [[ $entry =~ ^[[:blank:]]*"$HISTCMD"[[:blank:]]+(.*)$ ]]; then
       raw=${BASH_REMATCH[1]}
     fi
-    if [[ -n $raw && -z ${LLMAO_AGENT:-} && ${LLMAO_USE_LAUNCH_HISTORY:-0} == 1 ]]; then
+    if [[ -n $raw && -z ${LLMAO_AGENT:-} && ${LLMAO_USE_LAUNCH_HISTORY:-1} == 1 ]]; then
       marker="llmao-${BASHPID}-${RANDOM}-${RANDOM}:"
     fi
   fi

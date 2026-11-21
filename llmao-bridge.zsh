@@ -16,7 +16,7 @@ case ${reply[1]} in
     ;;
   AGENT_PROMPT)
     _llmao_prompt_matches "$raw" "${words[@]}" || exit 0
-    if [[ -z $LLMAO_AGENT && $LLMAO_USE_LAUNCH_HISTORY == 1 ]]; then
+    if [[ -z $LLMAO_AGENT && ${LLMAO_USE_LAUNCH_HISTORY:-1} == 1 ]]; then
       local entry
       if [[ $input_format == fish ]]; then
         # Fish supplies most recent first, preserving multiline entry boundaries.

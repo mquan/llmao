@@ -37,7 +37,7 @@ function fish_command_not_found
             set raw (status current-commandline 2>/dev/null | string collect)
             set -q raw[1]; or set raw ''
         end
-        if test -n "$raw"; and test -z "$LLMAO_AGENT"; and test "$LLMAO_USE_LAUNCH_HISTORY" = 1
+        if test -n "$raw"; and test -z "$LLMAO_AGENT"; and contains -- "$LLMAO_USE_LAUNCH_HISTORY" '' 1
             set use_history 1
         end
     end
@@ -47,7 +47,7 @@ function fish_command_not_found
             builtin history search --null
         end
     end | /bin/zsh -df "$_llmao_fish_dir/llmao-bridge.zsh" fish "$raw" \
-        "$LLMAO_AGENT" "$use_history" (count $argv) $argv (builtin --names) (functions --names))
+        "$LLMAO_AGENT" "$LLMAO_USE_LAUNCH_HISTORY" (count $argv) $argv (builtin --names) (functions --names))
     switch "$fields[1]"
         case typo
             if test "$LLMAO_SUGGEST_TYPOS" != 0

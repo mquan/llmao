@@ -37,7 +37,7 @@ show_setting() {
 
 if [ "$#" -eq 0 ]; then
   show_setting agent LLMAO_AGENT ''
-  show_setting launch-history LLMAO_USE_LAUNCH_HISTORY 0
+  show_setting launch-history LLMAO_USE_LAUNCH_HISTORY 1
   show_setting auto-launch LLMAO_AUTO_LAUNCH 1
   show_setting suggest-typos LLMAO_SUGGEST_TYPOS 1
   exit 0
