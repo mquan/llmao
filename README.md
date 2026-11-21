@@ -11,7 +11,7 @@ With **llmao**, natural language text automatically opens my coding agent of cho
 
 <img src="llmao.gif" width="667" alt="Terminal demo showing llmao open Codex after the user types ‘explain this project’">
 
-Supports all major coding agents on **zsh**, **Bash 4+**, and **Fish 3.6+**.
+Supports all [major coding agents](#supported-agents) on **zsh**, **Bash 4+**, and **Fish 3.6+**.
 
 ## Install
 
@@ -51,9 +51,9 @@ Run `llmao --help` for all settings. Changes apply immediately.
 
 Install and configure your agent separately. If llmao can’t select an installed agent, it falls back to your shell’s missing-command handler.
 
-Supported agents and their `llmao config agent` values
+### Supported agents
 
-| Coding agent | Config value |
+| Coding agent | `llmao config agent` value |
 | --- | --- |
 | Amp | `amp` |
 | Antigravity CLI | `agy` |
