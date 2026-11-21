@@ -1,0 +1,27 @@
+class Llmao < Formula
+  desc "Launch a coding agent for natural-language requests typed into zsh"
+  homepage "https://github.com/@OWNER@/llmao"
+  url "https://github.com/@OWNER@/llmao/releases/download/@TAG@/llmao-@TAG@.tar.gz"
+  version "@VERSION@"
+  sha256 "@SHA256@"
+
+  depends_on :macos
+
+  def install
+    (share/"llmao").install "llmao.plugin.zsh"
+  end
+
+  def caveats
+    <<~EOS
+      Add this to your .zshrc after any existing command-not-found integration:
+        source "#{opt_share}/llmao/llmao.plugin.zsh"
+    EOS
+  end
+
+  test do
+    system "/bin/zsh", "-n", share/"llmao/llmao.plugin.zsh"
+    output = shell_output("/bin/zsh -dfc 'source #{share}/llmao/llmao.plugin.zsh; " \
+                          "_llmao_classify 2 gti status git; print -r -- \"$reply[*]\"'")
+    assert_equal "TYPO git", output.strip
+  end
+end

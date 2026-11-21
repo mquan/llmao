@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+work_dir=$(mktemp -d "${TMPDIR:-/tmp}/llmao.XXXXXXXX")
+trap 'rm -rf -- "$work_dir"' EXIT
+
+(
+  cd "$work_dir"
+  archive=llmao-@TAG@.tar.gz
+  curl -fsSL --proto '=https' --proto-redir '=https' \
+    "https://github.com/@OWNER@/llmao/releases/download/@TAG@/$archive" -o "$archive"
+  printf '%s  %s\n' '@SHA256@' "$archive" | shasum -a 256 -c >/dev/null
+  tar -xzf "$archive"
+  sh ./install.sh "$@"
+)

@@ -1,0 +1,245 @@
+AGENT_PROMPT	fix the login bug
+AGENT_PROMPT	fix login bug
+AGENT_PROMPT	fix my broken build
+AGENT_PROMPT	fix an intermittent error
+AGENT_PROMPT	fix this failing check
+AGENT_PROMPT	fix our sign-in flow
+AGENT_PROMPT	fix the regression in checkout
+AGENT_PROMPT	explain this error
+AGENT_PROMPT	explain why the tests are failing
+AGENT_PROMPT	explain the retry policy
+AGENT_PROMPT	explain this API
+AGENT_PROMPT	explain this stack trace
+AGENT_PROMPT	explain this output.
+AGENT_PROMPT	why is this failing
+AGENT_PROMPT	why is my server consuming so much memory
+AGENT_PROMPT	why does sign-in fail
+AGENT_PROMPT	why are these files missing
+AGENT_PROMPT	why did the build time out
+AGENT_PROMPT	why has our cache stopped working
+AGENT_PROMPT	why was this warning added
+AGENT_PROMPT	what is triggering the request
+AGENT_PROMPT	what are these files for
+AGENT_PROMPT	what does this module do
+AGENT_PROMPT	what should I test
+AGENT_PROMPT	what would cause stale data
+AGENT_PROMPT	what has changed in auth
+AGENT_PROMPT	how do I test this
+AGENT_PROMPT	how can I add OAuth
+AGENT_PROMPT	how would this scale
+AGENT_PROMPT	how to reproduce this
+AGENT_PROMPT	how does this lock work
+AGENT_PROMPT	how should I handle errors
+AGENT_PROMPT	where does the token come from
+AGENT_PROMPT	where can I find the tests
+AGENT_PROMPT	where is the schema defined
+AGENT_PROMPT	when does the cache expire
+AGENT_PROMPT	when will the job run
+AGENT_PROMPT	when should we retry
+AGENT_PROMPT	can you add tests
+AGENT_PROMPT	can you refactor this function
+AGENT_PROMPT	can you update the docs
+AGENT_PROMPT	could you check the API
+AGENT_PROMPT	could you investigate the bug
+AGENT_PROMPT	could you review this handler
+AGENT_PROMPT	would you look at the logs
+AGENT_PROMPT	would you write an example
+AGENT_PROMPT	would you improve the tests
+AGENT_PROMPT	refactor the auth middleware
+AGENT_PROMPT	refactor auth middleware
+AGENT_PROMPT	refactor this function
+AGENT_PROMPT	implement oauth login
+AGENT_PROMPT	implement a caching layer
+AGENT_PROMPT	implement rate limiting
+AGENT_PROMPT	implement a new retry policy
+AGENT_PROMPT	implement refresh token rotation
+AGENT_PROMPT	improve error messages
+AGENT_PROMPT	improve the loading state
+AGENT_PROMPT	improve this query
+AGENT_PROMPT	investigate missing payments
+AGENT_PROMPT	investigate the flaky test
+AGENT_PROMPT	investigate this memory leak
+AGENT_PROMPT	create a migration
+AGENT_PROMPT	create the user settings page
+AGENT_PROMPT	create an integration test
+AGENT_PROMPT	build a minimal example
+AGENT_PROMPT	build the settings screen
+AGENT_PROMPT	build an index of routes
+AGENT_PROMPT	update the README
+AGENT_PROMPT	update our test fixtures
+AGENT_PROMPT	update this package
+AGENT_PROMPT	debug the upload failure
+AGENT_PROMPT	debug this test
+AGENT_PROMPT	debug my broken server
+AGENT_PROMPT	write a smoke test
+AGENT_PROMPT	write some usage examples
+AGENT_PROMPT	write the release notes
+AGENT_PROMPT	add a regression test
+AGENT_PROMPT	add more logging
+AGENT_PROMPT	add the new routes
+AGENT_PROMPT	review this configuration
+AGENT_PROMPT	review our auth flow
+AGENT_PROMPT	review the test coverage
+AGENT_PROMPT	help me fix this
+AGENT_PROMPT	help me add tests
+AGENT_PROMPT	help me reproduce this
+AGENT_PROMPT	please fix this bug
+AGENT_PROMPT	please refactor the handler
+AGENT_PROMPT	please explain this error
+AGENT_PROMPT	Fix the checkout bug
+AGENT_PROMPT	Explain this warning
+AGENT_PROMPT	WHY DID THE JOB FAIL
+AGENT_PROMPT	explain error E100.
+AGENT_PROMPT	why do things fail.
+AGENT_PROMPT	fix the API error.
+UNKNOWN	deploy
+UNKNOWN	foobar
+UNKNOWN	foo --version
+UNKNOWN	unknown-tool --help
+UNKNOWN	hello
+UNKNOWN	yo
+UNKNOWN	fix
+UNKNOWN	fix login
+UNKNOWN	build release linux
+UNKNOWN	debug server start
+UNKNOWN	update db migrate
+UNKNOWN	create service staging
+UNKNOWN	add remote origin
+UNKNOWN	review PR 12
+UNKNOWN	write log stdout
+UNKNOWN	fix --verbose the login bug
+UNKNOWN	fix the login bug -v
+UNKNOWN	fix the scope --
+UNKNOWN	explain -n this error
+UNKNOWN	explain ./src/auth.js please
+UNKNOWN	explain this app.py
+UNKNOWN	explain the value key=value
+UNKNOWN	explain this v1.2
+UNKNOWN	why is IPv6 down --debug
+UNKNOWN	why not
+UNKNOWN	when exactly
+UNKNOWN	what if
+UNKNOWN	how come
+UNKNOWN	where logs
+UNKNOWN	can I fix this
+UNKNOWN	can someone help
+UNKNOWN	could I change this
+UNKNOWN	would someone look
+UNKNOWN	help with tests
+UNKNOWN	please deploy
+UNKNOWN	please rerun job
+UNKNOWN	good morning team
+UNKNOWN	this is broken
+UNKNOWN	my application fails
+UNKNOWN	server health status
+UNKNOWN	git status
+UNKNOWN	python app.py
+UNKNOWN	npm run dev
+UNKNOWN	docker ps
+UNKNOWN	pnpm exec vite
+UNKNOWN	pip install pytest
+UNKNOWN	ssh production
+UNKNOWN	kubectl get pods
+UNKNOWN	unknown-command get logs
+UNKNOWN	ab
+UNKNOWN	np
+UNKNOWN	gix status
+UNKNOWN	gx status
+UNKNOWN	./gti status
+UNKNOWN	/usr/local/bin/gti status
+UNKNOWN	missing/path run
+UNKNOWN	fix the login bug | cat
+UNKNOWN	fix the login bug && true
+UNKNOWN	fix the login bug &
+UNKNOWN	fix the login bug > out
+UNKNOWN	fix the login bug ; true
+UNKNOWN	fix the login bug < infile
+UNKNOWN	fix the login bug \*
+UNKNOWN	fix the login bug [abc]
+UNKNOWN	fix the login bug {a,b}
+UNKNOWN	fix the login bug ~
+UNKNOWN	fix the login bug # note
+UNKNOWN	why does \$(tool) fail
+UNKNOWN	why does `tool` fail
+UNKNOWN	why does \$thing fail
+UNKNOWN	why does <(tool) fail
+UNKNOWN	fix the "login bug"
+UNKNOWN	explain this 'error message'
+UNKNOWN	fix '' this bug
+UNKNOWN	fix the login bug?
+UNKNOWN	explain this /path
+UNKNOWN	explain --option=on please
+UNKNOWN	unknown -abc foo
+UNKNOWN	what about that
+UNKNOWN	implement
+UNKNOWN	improve docs
+UNKNOWN	repeat the test
+UNKNOWN	unknown:command test
+UNKNOWN	foo bar baz
+UNKNOWN	git --help
+UNKNOWN	printf test
+UNKNOWN	cargo build
+UNKNOWN	node --version
+UNKNOWN	curl example.org
+UNKNOWN	grep -n foo
+UNKNOWN	codex help
+UNKNOWN	claude help
+UNKNOWN	make test
+UNKNOWN	why exactly now
+UNKNOWN	deploy staging now
+UNKNOWN	restart the server
+UNKNOWN	help me
+TYPO	gti status	git
+TYPO	igt status	git
+TYPO	giit status	git
+TYPO	gitt status	git
+TYPO	gitx status	git
+TYPO	pyhton app.py	python
+TYPO	pyton app.py	python
+TYPO	pythno app.py	python
+TYPO	pythonn app.py	python
+TYPO	pythom -V	python
+TYPO	ppython -V	python
+TYPO	kubect get pods	kubectl
+TYPO	kubetcl get pods	kubectl
+TYPO	kubctl get pods	kubectl
+TYPO	kubectll get pods	kubectl
+TYPO	kubectn get pods	kubectl
+TYPO	dcoker ps	docker
+TYPO	doker ps	docker
+TYPO	docke ps	docker
+TYPO	dockerr ps	docker
+TYPO	dockar ps	docker
+TYPO	dokcer ps	docker
+TYPO	dockerx --help	docker
+TYPO	nmp run dev	npm
+TYPO	pnm run dev	npm
+TYPO	npmm run dev	npm
+UNKNOWN	nnpm run dev
+TYPO	cagro build	cargo
+TYPO	caro build	cargo
+TYPO	carggo build	cargo
+TYPO	cargu build	cargo
+TYPO	calude	claude
+TYPO	claud	claude
+TYPO	claued	claude
+TYPO	claudde	claude
+TYPO	claudez	claude
+TYPO	coedx	codex
+TYPO	codx	codex
+TYPO	codexx	codex
+TYPO	codxe	codex
+TYPO	gerp -n token	grep
+TYPO	grpp -n token	grep
+TYPO	grepp foo	grep
+TYPO	greep foo	grep
+TYPO	pritnf hello	printf
+TYPO	prinf hello	printf
+TYPO	printff hello	printf
+TYPO	prontf hello	printf
+TYPO	mkae test	make
+TYPO	makee test	make
+TYPO	mame test	make
+TYPO	culr example.org	curl
+TYPO	curll example.org	curl
+TYPO	cirl --help	curl
