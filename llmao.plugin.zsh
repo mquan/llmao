@@ -280,18 +280,116 @@ function _llmao_classify_shell_word {
     "${(@k)functions}" "${(@k)builtins}" "${reswords[@]}"
 }
 
-function _llmao_zle_can_launch {
+function _llmao_automatic_agent_args {
   [[ ${functions[command_not_found_handler]} == "${functions[_llmao_hook]}" ]] || return 1
   local LLMAO_AGENT=${LLMAO_AGENT-} LLMAO_USE_LAUNCH_HISTORY=${LLMAO_USE_LAUNCH_HISTORY-}
   local LLMAO_AUTO_LAUNCH=${LLMAO_AUTO_LAUNCH-}
-  local -a reply
   _llmao_read_setting LLMAO_AUTO_LAUNCH
   [[ ${LLMAO_AUTO_LAUNCH:-1} == 1 ]] || return 1
   _llmao_read_setting LLMAO_AGENT
   _llmao_read_setting LLMAO_USE_LAUNCH_HISTORY
   _llmao_agent_args "${history[@]}"
   local agent=${reply[1]-}
-  _llmao_agent_command "$agent" '' '' && builtin whence -p -- "$agent" >/dev/null
+  local -a selection=( "${reply[@]}" )
+  _llmao_agent_command "$agent" '' '' && builtin whence -p -- "$agent" >/dev/null || return 1
+  reply=( "${selection[@]}" )
+}
+
+# Check every operand's result because status 1 can accompany a valid lookup.
+function _llmao_lookup_or_prompt {
+  emulate -L zsh
+  local prompt=$1
+  local IFS=$' \t'
+  local -a words=( ${=prompt} )
+  local -a operands=( "${words[@]:1}" )
+  local -a reply
+  local lookup=${words[1]} output diagnostics expected missing operand
+  local -i lookup_status=0
+  case $lookup in
+    what)
+      {
+        diagnostics=$(LC_ALL=C /usr/bin/what "${operands[@]}" 2>&1 >&3) || lookup_status=$?
+      } 3>&1
+      missing=$diagnostics
+      ;;
+    where|which)
+      output=$(builtin "$lookup" "${operands[@]}") || lookup_status=$?
+      missing=$output
+      ;;
+    *) return 2 ;;
+  esac
+  for operand in "${operands[@]}"; do
+    if [[ $lookup == what ]]; then
+      expected+="what: $operand: No such file or directory"$'\n'
+    else
+      expected+="$operand not found"$'\n'
+    fi
+  done
+  if (( lookup_status == 1 )) && [[ $missing == "${expected%$'\n'}" && -t 0 && -t 1 && -t 2 ]] &&
+     _llmao_automatic_agent_args; then
+    ( _llmao_exec_agent "${reply[1]}" "${reply[2]-}" "$prompt" )
+    return $?
+  fi
+  [[ -z $output ]] || builtin print -r -- "$output"
+  [[ -z $diagnostics ]] || builtin print -ru2 -- "$diagnostics"
+  return $lookup_status
+}
+
+function _llmao_is_lookup_question {
+  local lookup=$1
+  shift
+  local auxiliary="(am|is|are|was|were|has|have|had|do|does|did|can|could|may|might|should|would|will|isn't|aren't|wasn't|weren't|hasn't|haven't|hadn't|don't|doesn't|didn't|can't|couldn't|shouldn't|wouldn't|won't)"
+  local word
+  for word in "${@[1,-2]}"; do
+    [[ ${word:l} == ${~auxiliary} ]] && return 0
+  done
+  [[ $lookup == what && ${1:l} == (went|happened|changed|broke|failed|caused|triggered|made|makes|means) ]]
+}
+
+function _llmao_route_lookup {
+  [[ $CONTEXT == start && ( $BUFFER == *what* || $BUFFER == *where* || $BUFFER == *which* ) ]] || return 0
+  [[ ! -o histignorespace || $BUFFER != ' '* ]] || return 0
+  setopt localoptions extendedglob noksharrays nobashrematch noglobsubst
+  local prose_word="[[:alpha:]][[:alnum:]_-]*('(s|t|re|ve|ll|d|m))?"
+  local prose_line="^[[:blank:]]*(what|where|which)([[:blank:]]+${prose_word}){2,}(\\?|[.]+)?[[:blank:]]*$"
+  local MATCH MBEGIN MEND
+  local -a match mbegin mend reply
+  [[ $BUFFER =~ $prose_line ]] || return 0
+  local apostrophes=${BUFFER//[^\']/}
+  # Balanced quotes can group operands in zsh.
+  (( ! ${#apostrophes} || ${#apostrophes} % 2 )) || return 0
+
+  local IFS=$' \t'
+  local -a words=( ${=BUFFER} ) filenames
+  local lookup=${words[1]} word
+  _llmao_is_lookup_question "$lookup" "${words[@]:1}" || return 0
+  (( ! ${+aliases[$lookup]} && ! ${+functions[$lookup]} )) || return 0
+  for word in "${words[@]}"; do
+    [[ -z ${galiases[$word]+x} ]] || return 0
+  done
+  if [[ -o glob && ${words[-1]} == *\? ]]; then
+    [[ ! -o nullglob ]] || return 0
+    filenames=( ${~words[-1]}(#qN) )
+    (( ! ${#filenames} )) || return 0
+  fi
+
+  if [[ $lookup == what ]]; then
+    [[ -x . && $(builtin whence -p -- what) == /usr/bin/what ]] || return 0
+    for word in "${words[@]:1}"; do
+      [[ ! -e $word && ! -L $word ]] || return 0
+    done
+  else
+    (( ${+builtins[$lookup]} )) || return 0
+    for word in "${words[@]:1}"; do
+      builtin whence -w -- "$word" >/dev/null && return 0
+    done
+  fi
+
+  _llmao_automatic_agent_args || return 0
+  zle -I
+  # History can replay this invocation. Resolve the agent and its flags at run time.
+  BUFFER="\\_llmao_lookup_or_prompt ${(qq)BUFFER}"
+  return 0
 }
 
 function _llmao_quote_contractions {
@@ -325,7 +423,7 @@ function _llmao_quote_contractions {
       quoted_words+=( "$word" )
     fi
   done
-  _llmao_zle_can_launch || return 0
+  _llmao_automatic_agent_args || return 0
   BUFFER="${BUFFER%%[^[:blank:]]*}${(j: :)quoted_words}${BUFFER##*[^[:blank:]]}"
   return 0
 }
@@ -352,7 +450,7 @@ function _llmao_quote_question_mark {
   (( ! ${#filenames} )) || return 0
 
   # Leave zsh's original error in place if this shell has no launch target.
-  _llmao_zle_can_launch || return 0
+  _llmao_automatic_agent_args || return 0
   BUFFER=$question
   return 0
 }
@@ -418,6 +516,7 @@ if [[ -o interactive ]] && builtin zmodload zsh/parameter; then
     builtin functions -c _llmao_hook command_not_found_handler
     if [[ -o zle ]] && builtin zmodload zsh/zle; then
       autoload -Uz add-zle-hook-widget
+      add-zle-hook-widget line-finish _llmao_route_lookup
       add-zle-hook-widget line-finish _llmao_quote_contractions
       add-zle-hook-widget line-finish _llmao_quote_question_mark
     fi

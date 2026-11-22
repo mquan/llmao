@@ -348,6 +348,82 @@ def check_other_shells(cwd, commands):
         print(f"{name} PTY integration passed")
 
 
+def check_zsh_what(shell, cwd):
+    for prompt in (
+        "what is the meaning of this",
+        "what went wrong",
+        "what can we do to improve security?",
+        "what doesn't work today?",
+    ):
+        output = shell.run(prompt)
+        assert f"AGENT=codex ARGC=1 PROMPT={prompt} CWD={cwd}" in output, output
+        assert "No such file or directory" not in output, output
+        shell.status(42)
+
+    (cwd / "marker1").write_text("@(#)version-marker\n")
+    (cwd / "plain").write_text("No version marker here.\n")
+    (cwd / "lost").symlink_to("missing-target")
+    for line, expected in (
+        ("what -q marker1", "version-marker"),
+        ("what inspect marker1", "version-marker"),
+        ("what inspect marker?", "version-marker"),
+        ("what inspect plain", "plain:"),
+        ("what inspect lost", "what: lost: No such file or directory"),
+        ("what missing.bin", "what: missing.bin: No such file or directory"),
+        ("what missingreport missingversion", "what: missingversion: No such file or directory"),
+        ("what missingreport missingversion?", "no matches found: missingversion?"),
+        ("command what went wrong", "what: went: No such file or directory"),
+        ("what went wrong | cat", "what: went: No such file or directory"),
+    ):
+        output = shell.run(line)
+        assert expected in output and "Starting " not in output, (line, output)
+
+    shell.run("alias what='echo LOCAL_WHAT'")
+    output = shell.run("what went wrong")
+    assert "\nLOCAL_WHAT went wrong\n" in output and "Starting " not in output, output
+    shell.run("unalias what")
+
+
+def check_zsh_lookup_questions(shell, cwd, commands):
+    for prompt in ("where is the config", "which branch is active?"):
+        output = shell.run(prompt)
+        assert f"AGENT=codex ARGC=1 PROMPT={prompt} CWD={cwd}" in output, output
+        assert " not found" not in output, output
+        shell.status(42)
+
+    for lookup in ("where", "which"):
+        for line in (f"{lookup} -p git", f"{lookup} git is absent", f"{lookup} is absent git"):
+            output = shell.run(line)
+            assert f"{commands}/git" in output and "Starting " not in output, (line, output)
+        shell.status(1)
+        for line, expected in (
+            (f"{lookup} absent-one absent-two", "absent-one not found"),
+            (f"{lookup} absent-one should", "absent-one not found"),
+            (f"{lookup} absent-one absent-two?", "no matches found: absent-two?"),
+            (f"builtin {lookup} is the config", "config not found"),
+            (f"{lookup} is the config | cat", "config not found"),
+        ):
+            output = shell.run(line)
+            assert expected in output and "Starting " not in output, (line, output)
+        shell.run(f"alias {lookup}='echo LOCAL_LOOKUP'")
+        output = shell.run(f"{lookup} is the config")
+        assert "\nLOCAL_LOOKUP is the config\n" in output and "Starting " not in output, output
+        shell.run(f"unalias {lookup}")
+
+    shell.run("unset LLMAO_AGENT; LLMAO_USE_LAUNCH_HISTORY=1")
+    shell.run("codex --yolo")
+    output = shell.run("where is the config")
+    assert "Starting Codex (--yolo)" in output and "FLAG=--yolo" in output, output
+    shell.run("lookup_event=$((HISTCMD - 1))")
+    shell.run("LLMAO_USE_LAUNCH_HISTORY=0; LLMAO_AGENT=codex")
+    output = shell.run('fc -e - "$lookup_event"')
+    assert "Starting Codex..." in output and "FLAG=" not in output, output
+    shell.run("LLMAO_AUTO_LAUNCH=0")
+    output = shell.run('fc -e - "$lookup_event"')
+    assert "config not found" in output and "Starting " not in output, output
+    shell.run("unset LLMAO_AUTO_LAUNCH LLMAO_USE_LAUNCH_HISTORY lookup_event")
+
+
 def check_zsh_questions(cwd, commands, source):
     shell = Shell(
         cwd, f"{commands}:/usr/bin:/bin",
@@ -358,6 +434,7 @@ def check_zsh_questions(cwd, commands, source):
             shell.send(line)
             output = shell.read_until(b"MORE> ")
             assert "Starting " not in output, (line, output)
+            shell.read_until(b"\x1b[?2004h")
             os.write(shell.fd, b"\x03")
             shell.read_until(b"READY> ")
 
@@ -378,8 +455,8 @@ def check_zsh_questions(cwd, commands, source):
         expect_continuation("git commit -m 'draft")
         expect_continuation("let's check this | cat")
         if Path("/usr/bin/what").is_file():
-            output = shell.run("what is the meaning of this")
-            assert "what: is:" in output and "Starting " not in output, output
+            check_zsh_what(shell, cwd)
+        check_zsh_lookup_questions(shell, cwd, commands)
         check_prompt_punctuation(shell)
         check_interactive_prompt(shell, cwd)
 
@@ -391,6 +468,9 @@ def check_zsh_questions(cwd, commands, source):
         output = shell.run(prompt)
         assert "no matches found: security?" in output and "Starting " not in output, output
         expect_continuation("let's work on this")
+        if Path("/usr/bin/what").is_file():
+            output = shell.run("what went wrong")
+            assert "what: went: No such file or directory" in output and "Starting " not in output, output
         shell.run("unset LLMAO_AGENT")
         shell.send("llmao ask 'what can we improve?'")
         output = shell.read_until(b"Choose a coding agent: ")

@@ -40,12 +40,14 @@ After either install, open a new terminal to load llmao.
 
 ## How it works
 
-- **The shell goes first.** llmao kicks in only when your interactive shell can’t find a command. Commands like `git status` run as usual.
+- **The shell goes first.** llmao usually picks up a prompt when your interactive shell can’t find a command. Commands like `git status` run as usual.
 - **Likely typos stay in the shell.** Type `gti status` and llmao suggests `git` if it’s the only match. If several commands match, you get the usual shell error.
 - **llmao classifies shell input locally.** It passes the prompt to your chosen agent and starts it in your current directory. The agent and its configuration determine what it reads, sends, and stores. Your shell still handles syntax like `|`, `>`, or `*.py`.
 - **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
 
-In zsh, simple prompts can use contractions like `let's work on this` or end with a question mark, as in `how can we improve security?`. Existing commands such as macOS’s `what` still run as usual.
+In zsh, simple prompts can use contractions like `let's work on this` or end with a question mark, as in `how can we improve security?`. On macOS, a question such as `what went wrong` can open your agent when the system utility reports that every operand is missing. Use `command what` to call the utility explicitly.
+
+Questions such as `where is the config` and `which branch is active?` can also open your agent in zsh when every command lookup fails. Ordinary lists of unresolved names or files still show the lookup errors. Use `builtin where` or `builtin which` to run the lookup explicitly.
 
 Use single quotes around literal shell characters in a prompt, as in `explain 'what does $PATH do?'`.
 
@@ -108,7 +110,7 @@ python3 tests/integration.py
 
 The first command tests classification. The second uses a pseudo-terminal and agent stubs to check launches, terminal input, Ctrl-C, and fallbacks. It also tests modern Bash and Fish when installed. Bash and Fish use macOS's built-in `/bin/zsh` for the shared classifier.
 
-To prepare a release, run `./scripts/package-release OWNER v0.5.0 OUTPUT_DIRECTORY`. Upload the versioned archive and generated `install.sh` to the matching release of `OWNER/llmao`. Use the generated formula in the tap's `Formula/` directory. The installer and formula both use the checksum of the exact archive.
+To prepare a release, run `./scripts/package-release OWNER v0.6.0 OUTPUT_DIRECTORY`. Upload the versioned archive and generated `install.sh` to the matching release of `OWNER/llmao`. Use the generated formula in the tap's `Formula/` directory. The installer and formula both use the checksum of the exact archive.
 
 ## License
 
