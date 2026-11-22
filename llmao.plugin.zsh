@@ -280,6 +280,56 @@ function _llmao_classify_shell_word {
     "${(@k)functions}" "${(@k)builtins}" "${reswords[@]}"
 }
 
+function _llmao_zle_can_launch {
+  [[ ${functions[command_not_found_handler]} == "${functions[_llmao_hook]}" ]] || return 1
+  local LLMAO_AGENT=${LLMAO_AGENT-} LLMAO_USE_LAUNCH_HISTORY=${LLMAO_USE_LAUNCH_HISTORY-}
+  local LLMAO_AUTO_LAUNCH=${LLMAO_AUTO_LAUNCH-}
+  local -a reply
+  _llmao_read_setting LLMAO_AUTO_LAUNCH
+  [[ ${LLMAO_AUTO_LAUNCH:-1} == 1 ]] || return 1
+  _llmao_read_setting LLMAO_AGENT
+  _llmao_read_setting LLMAO_USE_LAUNCH_HISTORY
+  _llmao_agent_args "${history[@]}"
+  local agent=${reply[1]-}
+  _llmao_agent_command "$agent" '' '' && builtin whence -p -- "$agent" >/dev/null
+}
+
+function _llmao_quote_contractions {
+  [[ $CONTEXT == start && $BUFFER == *\'* ]] || return 0
+  [[ ! -o histignorespace || $BUFFER != ' '* ]] || return 0
+  setopt localoptions extendedglob noksharrays nobashrematch noglobsubst
+  local apostrophes=${BUFFER//[^\']/}
+  (( ${#apostrophes} % 2 )) || return 0
+  local MATCH MBEGIN MEND
+  local -a match mbegin mend reply
+  local prose_word="[[:alnum:]][[:alnum:]_-]*('(s|t|re|ve|ll|d|m))?[.,]*"
+  local prose_line="^[[:blank:]]*${prose_word}([[:blank:]]+${prose_word})+\\??[[:blank:]]*$"
+  [[ $BUFFER =~ $prose_line ]] || return 0
+
+  local IFS=$' \t'
+  local -a words=( ${=BUFFER} ) filenames quoted_words
+  _llmao_classify_shell_word "${words[1]}"
+  [[ $reply[1] == AGENT_PROMPT ]] || return 0
+
+  # Preserve actual glob matches and ordinary shell parsing for other lines.
+  if [[ -o glob && ${words[-1]} == *\? ]]; then
+    filenames=( ${~words[-1]}(#qN) )
+    (( ! ${#filenames} )) || return 0
+  fi
+  local word
+  for word in "${words[@]}"; do
+    [[ -z ${galiases[$word]+x} ]] || return 0
+    if [[ $word == *\'* || $word == *\? ]]; then
+      quoted_words+=( "\"$word\"" )
+    else
+      quoted_words+=( "$word" )
+    fi
+  done
+  _llmao_zle_can_launch || return 0
+  BUFFER="${BUFFER%%[^[:blank:]]*}${(j: :)quoted_words}${BUFFER##*[^[:blank:]]}"
+  return 0
+}
+
 function _llmao_quote_question_mark {
   [[ $BUFFER == *\?* && $CONTEXT == start && -o glob && -o nomatch && ! -o nullglob ]] || return 0
   [[ ! -o histignorespace || $BUFFER != ' '* ]] || return 0
@@ -289,9 +339,6 @@ function _llmao_quote_question_mark {
   local plain_question='^([[:blank:]]*([[:alpha:]][[:alnum:]_-]*)[[:blank:]]+([[:alnum:]_,.-]+[[:blank:]]+)*([[:alnum:]_,.-]*[[:alnum:]]))\?([[:blank:]]*)$'
   [[ $BUFFER =~ $plain_question ]] || return 0
   local question="${match[1]}'?'${match[5]}" first_word=${match[2]} pattern="${match[4]}?"
-  local LLMAO_AUTO_LAUNCH=${LLMAO_AUTO_LAUNCH-}
-  _llmao_read_setting LLMAO_AUTO_LAUNCH
-  [[ ${LLMAO_AUTO_LAUNCH:-1} == 1 ]] || return 0
   _llmao_classify_shell_word "$first_word"
   [[ $reply[1] == AGENT_PROMPT ]] || return 0
   local word
@@ -305,13 +352,7 @@ function _llmao_quote_question_mark {
   (( ! ${#filenames} )) || return 0
 
   # Leave zsh's original error in place if this shell has no launch target.
-  [[ ${functions[command_not_found_handler]} == "${functions[_llmao_hook]}" ]] || return 0
-  local LLMAO_AGENT=${LLMAO_AGENT-} LLMAO_USE_LAUNCH_HISTORY=${LLMAO_USE_LAUNCH_HISTORY-}
-  _llmao_read_setting LLMAO_AGENT
-  _llmao_read_setting LLMAO_USE_LAUNCH_HISTORY
-  _llmao_agent_args "${history[@]}"
-  local agent=${reply[1]-}
-  _llmao_agent_command "$agent" '' '' && builtin whence -p -- "$agent" >/dev/null || return 0
+  _llmao_zle_can_launch || return 0
   BUFFER=$question
   return 0
 }
@@ -377,6 +418,7 @@ if [[ -o interactive ]] && builtin zmodload zsh/parameter; then
     builtin functions -c _llmao_hook command_not_found_handler
     if [[ -o zle ]] && builtin zmodload zsh/zle; then
       autoload -Uz add-zle-hook-widget
+      add-zle-hook-widget line-finish _llmao_quote_contractions
       add-zle-hook-widget line-finish _llmao_quote_question_mark
     fi
   fi

@@ -354,6 +354,13 @@ def check_zsh_questions(cwd, commands, source):
         extra_env={"TERM": "xterm", "XDG_CONFIG_HOME": str(cwd / "config-zle")},
     )
     try:
+        def expect_continuation(line):
+            shell.send(line)
+            output = shell.read_until(b"MORE> ")
+            assert "Starting " not in output, (line, output)
+            os.write(shell.fd, b"\x03")
+            shell.read_until(b"READY> ")
+
         shell.run("setopt zle")
         shell.run("before_llmao() { typeset -g PREVIOUS_ZLE_HOOK=active; }")
         shell.run("zle -N zle-line-finish before_llmao")
@@ -364,6 +371,15 @@ def check_zsh_questions(cwd, commands, source):
         prompt = "how can we improve security?"
         output = shell.run(prompt)
         assert f"AGENT=codex ARGC=1 PROMPT={prompt} CWD={cwd}" in output, output
+        for contraction in ("let's work on this project", "why isn't this working?", "we'll check"):
+            output = shell.run(contraction)
+            assert f"AGENT=codex ARGC=1 PROMPT={contraction} CWD={cwd}" in output, output
+            shell.status(42)
+        expect_continuation("git commit -m 'draft")
+        expect_continuation("let's check this | cat")
+        if Path("/usr/bin/what").is_file():
+            output = shell.run("what is the meaning of this")
+            assert "what: is:" in output and "Starting " not in output, output
         check_prompt_punctuation(shell)
         check_interactive_prompt(shell, cwd)
 
@@ -374,6 +390,7 @@ def check_zsh_questions(cwd, commands, source):
         shell.run("LLMAO_AGENT=unavailable-agent")
         output = shell.run(prompt)
         assert "no matches found: security?" in output and "Starting " not in output, output
+        expect_continuation("let's work on this")
         shell.run("unset LLMAO_AGENT")
         shell.send("llmao ask 'what can we improve?'")
         output = shell.read_until(b"Choose a coding agent: ")
@@ -387,6 +404,7 @@ def check_zsh_questions(cwd, commands, source):
         assert "AGENT=claude ARGC=1 PROMPT=first line\nsecond line CWD=" in output, output
 
         (cwd / "report1").touch()
+        expect_continuation("let's inspect report?")
         output = shell.run("ls report?")
         assert "\nreport1\n" in output and "Starting " not in output, output
         output = shell.run("how should we read report?")
@@ -398,6 +416,7 @@ def check_zsh_questions(cwd, commands, source):
         shell.run("llmao config auto-launch off")
         output = shell.run(prompt)
         assert "no matches found: security?" in output, output
+        expect_continuation("let's work on this")
         output = shell.run("llmao ask --agent codex 'why?'")
         assert "AGENT=codex ARGC=1 PROMPT=why?" in output, output
     finally:

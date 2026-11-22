@@ -45,7 +45,7 @@ After either install, open a new terminal to load llmao.
 - **llmao classifies shell input locally.** It passes the prompt to your chosen agent and starts it in your current directory. The agent and its configuration determine what it reads, sends, and stores. Your shell still handles syntax like `|`, `>`, or `*.py`.
 - **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
 
-In zsh, a simple prompt can end with a question mark, as in `how can we improve security?`. Existing commands such as macOS’s `what` still run as usual.
+In zsh, simple prompts can use contractions like `let's work on this` or end with a question mark, as in `how can we improve security?`. Existing commands such as macOS’s `what` still run as usual.
 
 Use single quotes around literal shell characters in a prompt, as in `explain 'what does $PATH do?'`.
 
