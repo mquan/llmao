@@ -1,6 +1,6 @@
 # llmao
 
-I keep typing plain English in my shell prompt all the time
+I keep typing plain English in my shell prompt by mistake all the time
 
 ```text
 $ explain what this project is about
@@ -19,6 +19,8 @@ With **llmao**, natural language text automatically opens my coding agent of cho
 brew install mquan/tap/llmao
 ```
 
+Follow Homebrew’s post-install instructions to copy the `source` line for your shell into its startup file.
+
 **Standalone install with automatic activation**
 
 ```sh
@@ -34,7 +36,7 @@ After either install, open a new terminal to load llmao.
 - **llmao classifies shell input locally.** It passes the prompt to your chosen agent and starts it in your current directory. The agent and its configuration determine what it reads, sends, and stores. Your shell still handles syntax like `|`, `>`, or `*.py`.
 - **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
 
-## How to use llmao
+## How to use it
 
 Type a plain-text prompt directly at your shell prompt and press Enter. Here are a few examples:
 
@@ -45,7 +47,7 @@ $ let's work on this project
 $ what is the next task?
 ```
 
-llmao opens your coding agent in the current directory.
+llmao passes the prompt to your coding agent and launches it in the current directory.
 
 ### Send a prompt explicitly
 
@@ -71,7 +73,7 @@ llmao config launch-history off  # Ignore recent launches in auto mode
 
 Run `llmao --help` for all settings. Changes apply immediately.
 
-Install and configure your agent separately. If llmao can’t select an installed agent, it falls back to your shell’s missing-command handler.
+Install and configure your agent separately. If llmao can’t select an installed agent, it falls back to your shell's missing-command handler.
 
 ### Supported agents
 
