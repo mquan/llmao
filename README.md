@@ -47,16 +47,16 @@ After either install, open a new terminal to load llmao.
 
 ## How to use llmao
 
-Type a plain-text prompt directly at your shell prompt and press Enter.
+Type a plain-text prompt directly at your shell prompt and press Enter. Here are a few examples:
 
 ```text
-explain what this project is about
-how can we improve security?
-let's work on this project
-what is the next task?
+$ explain what this project is about
+$ how can we improve security?
+$ let's work on this project
+$ what is the next task?
 ```
 
-llmao opens your coding agent in the current directory with that prompt.
+llmao opens your coding agent in the current directory.
 
 ### Send a prompt explicitly
 
