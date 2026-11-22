@@ -45,9 +45,22 @@ After either install, open a new terminal to load llmao.
 - **llmao classifies shell input locally.** It passes the prompt to your chosen agent and starts it in your current directory. The agent and its configuration determine what it reads, sends, and stores. Your shell still handles syntax like `|`, `>`, or `*.py`.
 - **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
 
-## Send a prompt explicitly
+## How to use llmao
 
-Use `llmao ask` for a prompt that begins with a command name or contains shell punctuation. Put the prompt in quotes so the shell passes it as text.
+Type a plain-text prompt directly at your shell prompt and press Enter.
+
+```text
+explain what this project is about
+how can we improve security?
+let's work on this project
+what is the next task?
+```
+
+llmao opens your coding agent in the current directory with that prompt.
+
+### Send a prompt explicitly
+
+Use `llmao ask` when the shell would interpret part of your prompt as a command or shell syntax. Put the prompt in quotes so the shell passes it as text.
 
 ```sh
 llmao ask 'what do $PATH and !! mean?'
