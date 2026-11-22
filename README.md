@@ -31,10 +31,10 @@ After either install, open a new terminal to load llmao.
 
 ## How it works
 
-- **The shell goes first.** llmao usually picks up a prompt when your interactive shell can’t find a command. Commands like `git status` run as usual.
-- **Likely typos stay in the shell.** Type `gti status` and llmao suggests `git` if it’s the only match. If several commands match, you get the usual shell error.
+- **Shell commands run as usual.** When your interactive shell can’t find a command, llmao checks whether you typed a prompt.
+- **llmao checks for command typos.** Type `gti status` and llmao suggests `git` if it’s the only match. If several commands match, you get the usual shell error.
 - **llmao classifies shell input locally.** It passes the prompt to your chosen agent and starts it in your current directory. The agent and its configuration determine what it reads, sends, and stores. Your shell still handles syntax like `|`, `>`, or `*.py`.
-- **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
+- **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches.
 
 ## How to use it
 
