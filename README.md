@@ -45,6 +45,21 @@ After either install, open a new terminal to load llmao.
 - **Everything runs locally.** A line like `explain this project` can open your agent in the same terminal, using your current folder. Your shell still handles lines that use syntax like `|`, `>`, or `*.py`.
 - **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
 
+In zsh, a simple prompt can end with a question mark, as in `how can we improve security?`. Existing commands such as macOS’s `what` still run as usual.
+
+Use single quotes around literal shell characters in a prompt, as in `explain 'what does $PATH do?'`.
+
+## Send a prompt explicitly
+
+Use `llmao ask` for a prompt that begins with a command name or contains shell punctuation. Put the prompt in quotes so the shell passes it as text.
+
+```sh
+llmao ask 'what do $PATH and !! mean?'
+llmao ask --agent codex 'lets brainstorm ideas to improve security'
+```
+
+`llmao ask` uses your configured agent when set, or opens the only supported agent installed. With several agents installed, it lets you choose an agent for that request.
+
 ## Configure
 
 ```sh
@@ -91,7 +106,7 @@ python3 tests/integration.py
 
 The first command tests classification. The second uses a pseudo-terminal and agent stubs to check launches, terminal input, Ctrl-C, and fallbacks. It also tests modern Bash and Fish when installed. Bash and Fish use macOS's built-in `/bin/zsh` for the shared classifier.
 
-To prepare a release, run `./scripts/package-release OWNER v0.4.0 OUTPUT_DIRECTORY`. Upload the versioned archive and generated `install.sh` to the matching release of `OWNER/llmao`. Use the generated formula in the tap's `Formula/` directory. The installer and formula both use the checksum of the exact archive.
+To prepare a release, run `./scripts/package-release OWNER v0.5.0 OUTPUT_DIRECTORY`. Upload the versioned archive and generated `install.sh` to the matching release of `OWNER/llmao`. Use the generated formula in the tap's `Formula/` directory. The installer and formula both use the checksum of the exact archive.
 
 ## License
 

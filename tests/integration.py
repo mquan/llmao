@@ -203,6 +203,22 @@ exit 42
     shell.run(f"set -gx PATH {path}" if shell.name == "fish" else f"PATH={path}")
 
 
+def check_prompt_punctuation(shell):
+    prompt = 'what do $PATH, `git`, C:\\src, and !! mean?'
+    output = shell.run(f"explain '{prompt}'")
+    assert f"ARGC=1 PROMPT=explain {prompt} CWD=" in output, output
+    for line in ('explain "$PATH"', "explain $(printf safe)", "explain question\\?"):
+        output = shell.run(line)
+        assert "Starting " not in output, (line, output)
+    output = shell.run("lets brainstorm ideas to improve security")
+    assert "To send this as a prompt, use llmao ask" in output, output
+    assert "Starting " not in output and "Did you mean" not in output, output
+    output = shell.run("lets show --help")
+    assert "To send this as a prompt" not in output, output
+    output = shell.run(f"llmao ask --agent codex '{prompt}'")
+    assert f"AGENT=codex ARGC=1 PROMPT={prompt} CWD=" in output, output
+
+
 def check_other_shells(cwd, commands):
     for name, required in (("bash", (4, 0)), ("fish", (3, 6))):
         executable = os.environ.get(f"LLMAO_TEST_{name.upper()}") or shutil.which(name)
@@ -282,11 +298,69 @@ def check_other_shells(cwd, commands):
             shell.read_until(b"READY> ")
             shell.status(130 if name == "bash" else 127)
             shell.run("unset LLMAO_USE_LAUNCH_HISTORY" if name == "bash" else "set -e LLMAO_USE_LAUNCH_HISTORY")
+            shell.run("LLMAO_AGENT=codex" if name == "bash" else "set -g LLMAO_AGENT codex")
+            check_prompt_punctuation(shell)
+            shell.run("unset LLMAO_AGENT" if name == "bash" else "set -e LLMAO_AGENT")
             check_agent_support(shell, cwd, commands)
             check_config(shell)
         finally:
             shell.close()
         print(f"{name} PTY integration passed")
+
+
+def check_zsh_questions(cwd, commands, source):
+    shell = Shell(
+        cwd, f"{commands}:/usr/bin:/bin",
+        extra_env={"TERM": "xterm", "XDG_CONFIG_HOME": str(cwd / "config-zle")},
+    )
+    try:
+        shell.run("setopt zle")
+        shell.run("before_llmao() { typeset -g PREVIOUS_ZLE_HOOK=active; }")
+        shell.run("zle -N zle-line-finish before_llmao")
+        shell.run(source)
+        shell.run(source)
+        assert "PREVIOUS_ZLE_HOOK=active" in shell.run("typeset -p PREVIOUS_ZLE_HOOK")
+        shell.run("LLMAO_AGENT=codex")
+        prompt = "how can we improve security?"
+        output = shell.run(prompt)
+        assert f"AGENT=codex ARGC=1 PROMPT={prompt} CWD={cwd}" in output, output
+        check_prompt_punctuation(shell)
+
+        shell.run("setopt histignorespace")
+        output = shell.run(f" {prompt}")
+        assert "no matches found: security?" in output and "Starting " not in output, output
+        shell.run("unsetopt histignorespace")
+        shell.run("LLMAO_AGENT=unavailable-agent")
+        output = shell.run(prompt)
+        assert "no matches found: security?" in output and "Starting " not in output, output
+        shell.run("unset LLMAO_AGENT")
+        shell.send("llmao ask 'what can we improve?'")
+        output = shell.read_until(b"Choose a coding agent: ")
+        assert "claude" in output and "codex" in output, output
+        shell.send("2")
+        output = shell.read_until(b"READY> ")
+        assert "AGENT=codex ARGC=1 PROMPT=what can we improve?" in output, output
+
+        shell.run("llmao config agent claude")
+        output = shell.run("llmao ask 'first line\nsecond line'")
+        assert "AGENT=claude ARGC=1 PROMPT=first line\nsecond line CWD=" in output, output
+
+        (cwd / "report1").touch()
+        output = shell.run("ls report?")
+        assert "\nreport1\n" in output and "Starting " not in output, output
+        output = shell.run("how should we read report?")
+        assert "command not found: how" in output and "Starting " not in output, output
+        for line in ("ls security?", "how can we improve * security?", "how can we improve security? >/dev/tty"):
+            output = shell.run(line)
+            assert "no matches found:" in output and "Starting " not in output, (line, output)
+
+        shell.run("llmao config auto-launch off")
+        output = shell.run(prompt)
+        assert "no matches found: security?" in output, output
+        output = shell.run("llmao ask --agent codex 'why?'")
+        assert "AGENT=codex ARGC=1 PROMPT=why?" in output, output
+    finally:
+        shell.close()
 
 
 def main():
@@ -303,6 +377,8 @@ def main():
 
             for name in ("claude", "codex"):
                 make_command(commands, name, STUB)
+            for name in ("let", "less"):
+                make_command(commands, name, "#!/bin/zsh -f\nexit 0\n")
             for name in ("deploy-x", "deploy-z"):
                 make_command(commands, name, "#!/bin/zsh -f\nexit 0\n")
             make_command(commands, "git", "#!/bin/zsh -f\nprint -r -- GIT=$*\n")
@@ -480,6 +556,7 @@ def main():
             check_config(shell)
         finally:
             shell.close()
+        check_zsh_questions(cwd, commands, source)
         check_other_shells(cwd, commands)
     print("PTY integration passed (terminal, signals, status, discovery, syntax, fallback, launch history)")
 

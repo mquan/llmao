@@ -51,6 +51,20 @@ function _llmao_fallback {
   return 127
 }
 
+function _llmao_agent_names {
+  reply=( claude codex opencode devin copilot agy cursor-agent gemini kiro-cli qwen goose pi cline amp auggie )
+}
+
+function _llmao_installed_agents {
+  reply=()
+  local agent
+  for agent; do
+    if builtin whence -p -- "$agent" >/dev/null; then
+      reply+=( "$agent" )
+    fi
+  done
+}
+
 # Explicit configuration takes precedence. Only complete, allowlisted launch
 # lines can vote or supply a flag.
 function _llmao_agent_args {
@@ -62,14 +76,12 @@ function _llmao_agent_args {
     return 0
   fi
 
-  local -a agents=( claude codex opencode devin copilot agy cursor-agent gemini kiro-cli qwen goose pi cline amp auggie )
+  _llmao_agent_names
+  local -a agents=( "${reply[@]}" )
+  _llmao_installed_agents "${agents[@]}"
+  local -a installed=( "${reply[@]}" )
+  reply=()
   local agent executable cursor_executable
-  local -a installed
-  for agent in "${agents[@]}"; do
-    if builtin whence -p -- "$agent" >/dev/null; then
-      installed+=( "$agent" )
-    fi
-  done
   if (( ${#installed} == 1 )); then
     reply=( "${installed[1]}" )
   fi
@@ -153,9 +165,16 @@ function _llmao_prompt_matches {
   shift
   # Compare literal tokens to the argv supplied by the shell without evaluating
   # the input. Expansion and compound shell syntax stay with the shell.
-  [[ -n $line && $line != *[$'\n\r'\$\`\\]* ]] || return 1
+  [[ -n $line && $line != *[$'\n\r']* ]] || return 1
   local -a typed=( "${(@z)line}" )
   (( ${#typed} == $# )) || return 1
+  local token
+  for token in "${typed[@]}"; do
+    # These characters are literal in a whole single-quoted shell word.
+    if [[ $token == *[\$\`\\]* && ( $token != \'*\' || ${token[2,-2]} == *\'* ) ]]; then
+      return 1
+    fi
+  done
   typed=( "${(@Q)typed}" )
   local -i index
   for (( index = 1; index <= $#; ++index )); do
@@ -164,28 +183,141 @@ function _llmao_prompt_matches {
   return 0
 }
 
+function _llmao_read_setting {
+  local setting_file=${XDG_CONFIG_HOME:-$HOME/.config}/llmao/$1
+  if [[ -r $setting_file ]]; then
+    IFS= builtin read -r "$1" < "$setting_file" || :
+  fi
+}
+
+function _llmao_exec_agent {
+  local agent=$1 executable
+  local -a reply
+  _llmao_agent_command "$@" && executable=$(builtin whence -p -- "$agent") || return 125
+  builtin print -ru2 -- "✦ Starting ${reply[1]}..."
+  if [[ $agent == amp ]]; then
+    builtin exec -- "$executable" < <(builtin print -r -- "${reply[2]}")
+  else
+    builtin exec -- "$executable" "${(@)reply[2,-1]}"
+  fi
+}
+
+function _llmao_ask {
+  emulate -L zsh
+  local usage='Usage: llmao ask [--agent NAME] [--] PROMPT'
+  local agent
+  local -a reply
+  case ${1-} in
+    -h|--help) builtin print -r -- "$usage"; return 0 ;;
+    --agent)
+      [[ -n ${2-} ]] || { builtin print -ru2 -- "$usage"; return 2; }
+      agent=$2
+      shift 2
+      ;;
+  esac
+  [[ ${1-} != -- ]] || shift
+  [[ -n ${(j: :)@} ]] || { builtin print -ru2 -- "$usage"; return 2; }
+  [[ -t 0 && -t 1 && -t 2 ]] || {
+    builtin print -ru2 -- 'llmao ask needs an interactive terminal.'
+    return 1
+  }
+  if [[ -z $agent ]]; then
+    local LLMAO_AGENT=${LLMAO_AGENT-} LLMAO_USE_LAUNCH_HISTORY=0
+    _llmao_read_setting LLMAO_AGENT
+    _llmao_agent_args
+    agent=${reply[1]-}
+    if [[ -z $agent ]]; then
+      _llmao_agent_names
+      _llmao_installed_agents "${reply[@]}"
+      if (( ! ${#reply} )); then
+        builtin print -ru2 -- 'No supported coding agent is installed.'
+        return 1
+      fi
+      local PS3='Choose a coding agent: '
+      select agent in "${reply[@]}"; do
+        [[ -z $agent ]] || break
+      done
+      [[ -n $agent ]] || return 1
+    fi
+  fi
+  _llmao_exec_agent "$agent" '' "${(j: :)@}"
+  builtin print -ru2 -- "Coding agent unavailable: $agent"
+  return 1
+}
+
+function _llmao_prompt_hint {
+  (( $# >= 4 )) && _llmao_prompt_matches "$@" || return 1
+  local word
+  for word in "${@[3,-1]}"; do
+    [[ $word == [[:alpha:]]* && $word != */* ]] || return 1
+  done
+  builtin print -r -- 'To send this as a prompt, use llmao ask with the text in quotes.'
+}
+
 # These arrays belong to the shell. Reading commands lets zsh populate its own
-# hash on demand. There is no hook on the successful command path.
+# hash on demand.
+function _llmao_classify_shell_word {
+  _llmao_classify "$1" "${(@k)commands}" "${(@k)aliases}" \
+    "${(@k)functions}" "${(@k)builtins}" "${reswords[@]}"
+}
+
+function _llmao_quote_question_mark {
+  [[ $BUFFER == *\?* && $CONTEXT == start && -o glob && -o nomatch && ! -o nullglob ]] || return 0
+  [[ ! -o histignorespace || $BUFFER != ' '* ]] || return 0
+  setopt localoptions extendedglob noksharrays nobashrematch
+  local MATCH MBEGIN MEND
+  local -a match mbegin mend reply
+  local plain_question='^([[:blank:]]*([[:alpha:]][[:alnum:]_-]*)[[:blank:]]+([[:alnum:]_,.-]+[[:blank:]]+)*([[:alnum:]_,.-]*[[:alnum:]]))\?([[:blank:]]*)$'
+  [[ $BUFFER =~ $plain_question ]] || return 0
+  local question="${match[1]}'?'${match[5]}" first_word=${match[2]} pattern="${match[4]}?"
+  local LLMAO_AUTO_LAUNCH=${LLMAO_AUTO_LAUNCH-}
+  _llmao_read_setting LLMAO_AUTO_LAUNCH
+  [[ ${LLMAO_AUTO_LAUNCH:-1} == 1 ]] || return 0
+  _llmao_classify_shell_word "$first_word"
+  [[ $reply[1] == AGENT_PROMPT ]] || return 0
+  local word
+  for word in ${(z)BUFFER}; do
+    [[ -z ${galiases[$word]+x} ]] || return 0
+  done
+
+  # Retain real filename matches. Quote only when the wildcard would fail
+  # before zsh could call the missing-command handler.
+  local -a filenames=( ${~pattern}(#qN) )
+  (( ! ${#filenames} )) || return 0
+
+  # Leave zsh's original error in place if this shell has no launch target.
+  [[ ${functions[command_not_found_handler]} == "${functions[_llmao_hook]}" ]] || return 0
+  local LLMAO_AGENT=${LLMAO_AGENT-} LLMAO_USE_LAUNCH_HISTORY=${LLMAO_USE_LAUNCH_HISTORY-}
+  _llmao_read_setting LLMAO_AGENT
+  _llmao_read_setting LLMAO_USE_LAUNCH_HISTORY
+  _llmao_agent_args "${history[@]}"
+  local agent=${reply[1]-}
+  _llmao_agent_command "$agent" '' '' && builtin whence -p -- "$agent" >/dev/null || return 0
+  BUFFER=$question
+  return 0
+}
+
 function _llmao_handle {
   emulate -L zsh
   setopt extendedglob
   local -a reply
   local LLMAO_AGENT=${LLMAO_AGENT-} LLMAO_USE_LAUNCH_HISTORY=${LLMAO_USE_LAUNCH_HISTORY-}
   local LLMAO_AUTO_LAUNCH=${LLMAO_AUTO_LAUNCH-} LLMAO_SUGGEST_TYPOS=${LLMAO_SUGGEST_TYPOS-}
-  local config_dir=${XDG_CONFIG_HOME:-$HOME/.config}/llmao setting
+  local setting
   for setting in LLMAO_AGENT LLMAO_USE_LAUNCH_HISTORY LLMAO_AUTO_LAUNCH LLMAO_SUGGEST_TYPOS; do
-    if [[ -r $config_dir/$setting ]]; then
-      IFS= builtin read -r "$setting" < "$config_dir/$setting" || :
-    fi
+    _llmao_read_setting "$setting"
   done
-  _llmao_classify "$1" "${(@k)commands}" "${(@k)aliases}" \
-    "${(@k)functions}" "${(@k)builtins}" "${reswords[@]}"
+  _llmao_classify_shell_word "$1"
 
   case ${reply[1]} in
     TYPO)
       if [[ ${LLMAO_SUGGEST_TYPOS:-1} == 1 && -n ${reply[2]-} ]]; then
         builtin print -ru2 -- "Command '$1' not found. Did you mean '${reply[2]}'?"
         return 127
+      fi
+      if [[ ${LLMAO_SUGGEST_TYPOS:-1} == 1 && ${LLMAO_AUTO_LAUNCH:-1} == 1 && -z ${reply[2]-} &&
+            -t 0 && -t 1 && -t 2 && $ZSH_SUBSHELL == 1 && ${#funcstack} == 2 ]]; then
+        _llmao_prompt_hint "${history[$HISTCMD]}" "$@" >&2
       fi
       ;;
     AGENT_PROMPT)
@@ -198,16 +330,7 @@ function _llmao_handle {
         else
           _llmao_agent_args
         fi
-        local executable agent=${reply[1]-}
-        if _llmao_agent_command "$agent" "${reply[2]-}" "${(j: :)@}" &&
-           executable=$(builtin whence -p -- "$agent"); then
-          builtin print -ru2 -- "✦ Starting ${reply[1]}..."
-          if [[ $agent == amp ]]; then
-            builtin exec -- "$executable" < <(builtin print -r -- "${reply[2]}")
-          else
-            builtin exec -- "$executable" "${(@)reply[2,-1]}"
-          fi
-        fi
+        _llmao_exec_agent "${reply[1]-}" "${reply[2]-}" "${(j: :)@}"
       fi
       ;;
   esac
@@ -233,5 +356,9 @@ if [[ -o interactive ]] && builtin zmodload zsh/parameter; then
       }
     }
     builtin functions -c _llmao_hook command_not_found_handler
+    if [[ -o zle ]] && builtin zmodload zsh/zle; then
+      autoload -Uz add-zle-hook-widget
+      add-zle-hook-widget line-finish _llmao_quote_question_mark
+    fi
   fi
 fi

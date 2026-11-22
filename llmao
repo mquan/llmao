@@ -5,7 +5,8 @@ agent_names='claude codex opencode devin copilot agy cursor-agent gemini kiro-cl
 
 usage() {
   cat <<EOF
-Usage: llmao config [setting value]
+Usage: llmao ask [--agent NAME] [--] PROMPT
+       llmao config [setting value]
 
   agent           auto or one of: $agent_names
   launch-history  on | off
@@ -15,6 +16,14 @@ EOF
 }
 
 case ${1-} in
+  ask)
+    shift
+    exec /bin/zsh -dfc '
+      source "${1:A:h}/llmao.plugin.zsh" || exit 1
+      shift
+      _llmao_ask "$@"
+    ' llmao "$0" "$@"
+    ;;
   config) shift ;;
   -h|--help) usage; exit 0 ;;
   *) usage >&2; exit 2 ;;

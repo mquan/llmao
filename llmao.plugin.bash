@@ -67,6 +67,11 @@ command_not_found_handle() {
   )
   builtin mapfile -t fields <<< "$decision"
   case ${fields[0]} in
+    hint)
+      if [[ ${LLMAO_SUGGEST_TYPOS:-1} == 1 ]]; then
+        builtin printf '%s\n' "${fields[1]}" >&2
+      fi
+      ;;
     typo)
       if [[ ${LLMAO_SUGGEST_TYPOS:-1} == 1 ]]; then
         builtin printf "Command '%s' not found. Did you mean '%s'?\n" "$1" "${fields[1]}" >&2

@@ -49,6 +49,10 @@ function fish_command_not_found
     end | /bin/zsh -df "$_llmao_fish_dir/llmao-bridge.zsh" fish "$raw" \
         "$LLMAO_AGENT" "$LLMAO_USE_LAUNCH_HISTORY" (count $argv) $argv (builtin --names) (functions --names))
     switch "$fields[1]"
+        case hint
+            if test "$LLMAO_SUGGEST_TYPOS" != 0
+                printf '%s\n' "$fields[2]" >&2
+            end
         case typo
             if test "$LLMAO_SUGGEST_TYPOS" != 0
                 printf "Command '%s' not found. Did you mean '%s'?\n" "$argv[1]" "$fields[2]" >&2

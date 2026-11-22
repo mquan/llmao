@@ -12,7 +12,12 @@ _llmao_classify "${words[1]}" "$@" "${(@k)commands}"
 
 case ${reply[1]} in
   TYPO)
-    [[ -z ${reply[2]-} ]] || print -rl -- typo "${reply[2]}"
+    local hint
+    if [[ -n ${reply[2]-} ]]; then
+      print -rl -- typo "${reply[2]}"
+    elif hint=$(_llmao_prompt_hint "$raw" "${words[@]}"); then
+      print -rl -- hint "$hint"
+    fi
     ;;
   AGENT_PROMPT)
     _llmao_prompt_matches "$raw" "${words[@]}" || exit 0
