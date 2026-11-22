@@ -45,12 +45,6 @@ After either install, open a new terminal to load llmao.
 - **llmao classifies shell input locally.** It passes the prompt to your chosen agent and starts it in your current directory. The agent and its configuration determine what it reads, sends, and stores. Your shell still handles syntax like `|`, `>`, or `*.py`.
 - **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
 
-In zsh, simple prompts can use contractions like `let's work on this` or end with a question mark, as in `how can we improve security?`. On macOS, a question such as `what went wrong` can open your agent when the system utility reports that every operand is missing. Use `command what` to call the utility explicitly.
-
-Questions such as `where is the config` and `which branch is active?` can also open your agent in zsh when every command lookup fails. Ordinary lists of unresolved names or files still show the lookup errors. Use `builtin where` or `builtin which` to run the lookup explicitly.
-
-Use single quotes around literal shell characters in a prompt, as in `explain 'what does $PATH do?'`.
-
 ## Send a prompt explicitly
 
 Use `llmao ask` for a prompt that begins with a command name or contains shell punctuation. Put the prompt in quotes so the shell passes it as text.
