@@ -42,7 +42,7 @@ After either install, open a new terminal to load llmao.
 
 - **The shell goes first.** llmao kicks in only when your interactive shell can’t find a command. Commands like `git status` run as usual.
 - **Likely typos stay in the shell.** Type `gti status` and llmao suggests `git` if it’s the only match. If several commands match, you get the usual shell error.
-- **Everything runs locally.** A line like `explain this project` can open your agent in the same terminal, using your current folder. Your shell still handles lines that use syntax like `|`, `>`, or `*.py`.
+- **llmao classifies shell input locally.** It passes the prompt to your chosen agent and starts it in your current directory. The agent and its configuration determine what it reads, sends, and stores. Your shell still handles syntax like `|`, `>`, or `*.py`.
 - **Coding agent selection.** llmao automatically opens your only installed supported agent. If you have several, it picks the one you used most often among your last 10 recognized agent launches. Ties go to the most recent launch.
 
 In zsh, a simple prompt can end with a question mark, as in `how can we improve security?`. Existing commands such as macOS’s `what` still run as usual.
@@ -59,6 +59,8 @@ llmao ask --agent codex 'lets brainstorm ideas to improve security'
 ```
 
 `llmao ask` uses your configured agent when set, or opens the only supported agent installed. With several agents installed, it lets you choose an agent for that request.
+
+To keep a prompt out of shell history, run `llmao ask --input` or `llmao ask --agent codex --input`. After llmao shows the agent and current directory, type a single line and press Enter to send it. Press Ctrl-C to cancel. Depending on the agent, llmao may still pass the prompt as a process argument.
 
 ## Configure
 

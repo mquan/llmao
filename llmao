@@ -6,6 +6,7 @@ agent_names='claude codex opencode devin copilot agy cursor-agent gemini kiro-cl
 usage() {
   cat <<EOF
 Usage: llmao ask [--agent NAME] [--] PROMPT
+       llmao ask [--agent NAME] --input
        llmao config [setting value]
 
   agent           auto or one of: $agent_names

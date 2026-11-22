@@ -204,8 +204,10 @@ function _llmao_exec_agent {
 
 function _llmao_ask {
   emulate -L zsh
-  local usage='Usage: llmao ask [--agent NAME] [--] PROMPT'
-  local agent
+  local usage='Usage: llmao ask [--agent NAME] [--] PROMPT
+       llmao ask [--agent NAME] --input'
+  local agent prompt
+  local -i read_prompt=0
   local -a reply
   case ${1-} in
     -h|--help) builtin print -r -- "$usage"; return 0 ;;
@@ -215,8 +217,14 @@ function _llmao_ask {
       shift 2
       ;;
   esac
-  [[ ${1-} != -- ]] || shift
-  [[ -n ${(j: :)@} ]] || { builtin print -ru2 -- "$usage"; return 2; }
+  if [[ ${1-} == --input ]]; then
+    (( $# == 1 )) || { builtin print -ru2 -- "$usage"; return 2; }
+    read_prompt=1
+  else
+    [[ ${1-} != -- ]] || shift
+    prompt=${(j: :)@}
+    [[ -n $prompt ]] || { builtin print -ru2 -- "$usage"; return 2; }
+  fi
   [[ -t 0 && -t 1 && -t 2 ]] || {
     builtin print -ru2 -- 'llmao ask needs an interactive terminal.'
     return 1
@@ -240,7 +248,18 @@ function _llmao_ask {
       [[ -n $agent ]] || return 1
     fi
   fi
-  _llmao_exec_agent "$agent" '' "${(j: :)@}"
+  if (( read_prompt )); then
+    if ! _llmao_agent_command "$agent" '' '' || ! builtin whence -p -- "$agent" >/dev/null; then
+      builtin print -ru2 -- "Coding agent unavailable: $agent"
+      return 1
+    fi
+    builtin printf 'Agent: %s\nDirectory: %s\nPrompt (Enter to send, Ctrl-C to cancel): ' "${reply[1]}" "${(V)PWD}" >&2
+    if ! IFS= builtin read -r prompt || [[ -z $prompt ]]; then
+      builtin print -ru2 -- 'No prompt entered.'
+      return 1
+    fi
+  fi
+  _llmao_exec_agent "$agent" '' "$prompt"
   builtin print -ru2 -- "Coding agent unavailable: $agent"
   return 1
 }

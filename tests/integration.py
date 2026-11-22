@@ -219,6 +219,45 @@ def check_prompt_punctuation(shell):
     assert f"AGENT=codex ARGC=1 PROMPT={prompt} CWD=" in output, output
 
 
+def check_interactive_prompt(shell, cwd):
+    cue = b"Prompt (Enter to send, Ctrl-C to cancel): "
+    command = "llmao ask --agent codex --input"
+    prompt = "  --history-check $PATH `git` \\ café  "
+    shell.send(command)
+    output = shell.read_until(cue)
+    assert f"Agent: Codex\nDirectory: {cwd}\n" in output, output
+    assert "Starting " not in output, output
+    shell.send(prompt)
+    output = shell.read_until(b"READY> ")
+    assert f"AGENT=codex ARGC=1 PROMPT={prompt} CWD={cwd}\n" in output, output
+    shell.status(42)
+    output = shell.run("builtin history")
+    assert command in output and "--history-check" not in output, output
+
+    shell.send("llmao ask --input")
+    output = shell.read_until(b"Choose a coding agent: ")
+    assert "claude" in output and "codex" in output, output
+    shell.send("2")
+    assert "Agent: Codex\n" in shell.read_until(cue)
+    os.write(shell.fd, b"\x03")
+    output = shell.read_until(b"READY> ")
+    assert "Starting " not in output, output
+    shell.status(130)
+
+    shell.send(command)
+    shell.read_until(cue)
+    os.write(shell.fd, b"\x04")
+    output = shell.read_until(b"READY> ")
+    assert "No prompt entered." in output and "Starting " not in output, output
+    shell.status(1)
+
+    output = shell.run(f"{command} extra")
+    assert "Usage: llmao ask" in output and "Starting " not in output, output
+    shell.status(2)
+    output = shell.run("llmao ask --agent codex -- --input")
+    assert "AGENT=codex ARGC=1 PROMPT=--input CWD=" in output, output
+
+
 def check_other_shells(cwd, commands):
     for name, required in (("bash", (4, 0)), ("fish", (3, 6))):
         executable = os.environ.get(f"LLMAO_TEST_{name.upper()}") or shutil.which(name)
@@ -300,6 +339,7 @@ def check_other_shells(cwd, commands):
             shell.run("unset LLMAO_USE_LAUNCH_HISTORY" if name == "bash" else "set -e LLMAO_USE_LAUNCH_HISTORY")
             shell.run("LLMAO_AGENT=codex" if name == "bash" else "set -g LLMAO_AGENT codex")
             check_prompt_punctuation(shell)
+            check_interactive_prompt(shell, cwd)
             shell.run("unset LLMAO_AGENT" if name == "bash" else "set -e LLMAO_AGENT")
             check_agent_support(shell, cwd, commands)
             check_config(shell)
@@ -325,6 +365,7 @@ def check_zsh_questions(cwd, commands, source):
         output = shell.run(prompt)
         assert f"AGENT=codex ARGC=1 PROMPT={prompt} CWD={cwd}" in output, output
         check_prompt_punctuation(shell)
+        check_interactive_prompt(shell, cwd)
 
         shell.run("setopt histignorespace")
         output = shell.run(f" {prompt}")
